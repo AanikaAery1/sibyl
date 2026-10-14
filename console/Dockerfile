@@ -37,5 +37,8 @@ COPY --from=build --chown=sibyl:sibyl /app/.next/static ./.next/static
 USER sibyl
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
-  CMD wget -q -O /dev/null http://127.0.0.1:3000/healthz || exit 1
-CMD ["node", "server.js"]
+  CMD wget -q -O /dev/null "http://127.0.0.1:${PORT:-3000}/healthz" || exit 1
+# Next.js binds to $HOSTNAME. Platforms that run the container (Render, Kubernetes) overwrite
+# HOSTNAME with the pod's name, which binds one interface only and refuses loopback and the
+# platform's health checks. Bind every interface on whatever $PORT the platform assigns.
+CMD ["sh", "-c", "HOSTNAME=0.0.0.0 exec node server.js"]
