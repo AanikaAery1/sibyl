@@ -1,0 +1,21 @@
+# BuildKit per-Dockerfile ignore (the root .dockerignore is steward-owned).
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/node_modules
+**/tests
+.git
+.claude
+docs
+ci
+ops
+deploy
+!deploy/docker/sibyl-entrypoint.sh
+**/*.pem
+**/*.crt
+**/*.key
+**/.env
+**/*.env

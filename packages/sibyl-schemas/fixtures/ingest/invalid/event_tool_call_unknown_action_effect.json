@@ -1,0 +1,41 @@
+{
+  "schema": "sibyl-event/1",
+  "event_id": "019276a3-0002-7000-8000-000000000013",
+  "type": "tool.call",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "task_id": "019276a0-9c1d-7e3f-9a52-1b2c3d4e5f60",
+  "call_id": null,
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "7a1b2c3d4e5f6072",
+  "ts": "2026-10-09T09:14:35.001Z",
+  "observed_at": "2026-10-09T09:14:36.420Z",
+  "source": "sdk",
+  "emitter_id": "sdk:quote-worker-3:7719",
+  "seq": 1043,
+  "capture_mode": "full",
+  "redaction_profile": {
+    "id": "secrets_only",
+    "version": 1,
+    "rules_fired": [],
+    "secrets_scrubbed": 0
+  },
+  "policy_state": {
+    "state": "fresh",
+    "policy_version": 42,
+    "fail_mode": "open"
+  },
+  "attrs": {
+    "tool_name": "refund_payment",
+    "tool_type": "function",
+    "tool_call_id": "call_9a2",
+    "status": "ok",
+    "latency_ms": 41000.0,
+    "side_effect_class": "write",
+    "parent_run_id": "019276a0-9c1d-7e3f-9a52-1b2c3d4e5f60",
+    "step_index": 3,
+    "action_effect": "escalate",
+    "action_rule_id": "refunds.large",
+    "held_action_id": "019276a4-0000-7000-8000-0000000000a1"
+  }
+}

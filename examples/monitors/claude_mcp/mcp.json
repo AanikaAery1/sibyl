@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "sibyl": {
+      "type": "stdio",
+      "command": "sibyl-mcp",
+      "args": [],
+      "env": {
+        "SIBYL_API_URL": "${SIBYL_API_URL}",
+        "SIBYL_MONITOR_KEY": "${SIBYL_MONITOR_KEY}"
+      }
+    }
+  }
+}

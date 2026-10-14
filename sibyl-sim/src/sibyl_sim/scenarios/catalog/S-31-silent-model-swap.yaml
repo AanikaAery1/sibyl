@@ -1,0 +1,45 @@
+# S-31 Silent model swap (WAVE3 D51, drift lane). From t=150 the provider double answers
+# receipt-ocr's calls with a different model than requested (`served_model`), a new provider
+# fingerprint, and outputs 2.5x as long. No errors, no latency change: every detected rule stays
+# quiet, which is the point. Ground truth: `model_change` and `silent_drift` for receipt-ocr,
+# and no automated action (drift is watch-only, D51.2).
+#
+# Time scaling (deviation, declared): the product freezes a drift baseline after 6 h and 500
+# calls and judges 1 h windows. The `drift:` block runs the product's own drift runner with
+# those DriftConfig windows scaled to minutes (harness/inprocess/loops.py); detector, thresholds
+# (PSI / Jensen-Shannon), hysteresis, alerts and the clock are the product's.
+# Timeline: the baseline opens at the first call of the last 2 minutes before t=0 and freezes
+# once it spans 4 minutes (about t=120, ~60 calls, fingerprint fp_sim_base_01). The swap
+# follows at t=150, after the freeze, so the baseline never sees the new model.
+# No onset label on purpose: a label would arm the detected-rule recall gate, which drift
+# alerts (watch-only, leading kinds) are not part of.
+id: S-31
+title: Silent model swap, served model, fingerprint and output length change without errors
+gate_class: none
+duration_s: 330
+drift:
+  baseline_min_span_s: 240
+  baseline_min_samples: 40
+  eval_window_s: 120
+  eval_every_s: 15
+  eval_min_samples: 25
+  tool_min_samples: 25
+tenants:
+  meridian:
+    agents:
+      receipt-ocr: busy      # tier 3, openai-stub, 0.5 rps
+chaos:
+  - {at: 0, double: openai-stub, agents: [receipt-ocr], set: {system_fingerprint: "fp_sim_base_01"}}
+  - at: 150
+    double: openai-stub
+    agents: [receipt-ocr]
+    set: {served_model: "gpt-4.1-mini-2026-09-30", system_fingerprint: "fp_sim_swap_0b7e", token_multiplier: 2.5}
+expect:
+  - detect: {agent: receipt-ocr, rule: [model_change], by_t: 240}
+    note: "model identity drift: served model and fingerprint the baseline never saw"
+  - detect: {agent: receipt-ocr, rule: [silent_drift], by_t: 330}
+    note: "behavioural drift: output-token distribution shift"
+  - no_alert: {agent: receipt-ocr, rule: [R1, R2, R3, R6, R7, R8]}
+    note: "nothing the detected rules can see"
+  - no_action: {agent: receipt-ocr}
+  - quiet: {tenant: northstar}

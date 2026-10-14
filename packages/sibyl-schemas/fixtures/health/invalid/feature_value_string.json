@@ -1,0 +1,67 @@
+{
+  "schema": "sibyl-feature-snapshot/1",
+  "feature_snapshot_ref": "fs_019276a2-7e00-7000-8000-000000000042",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "as_of": "2026-10-09T09:15:50.000Z",
+  "feature_set": "features/v1",
+  "grains": {
+    "1m": {
+      "request_count": "1840",
+      "error_rate": 0.12,
+      "error_rate_429": 0.08,
+      "error_rate_5xx": 0.03,
+      "error_rate_timeout": 0.01,
+      "latency_p50_ms": 900.0,
+      "latency_p95_ms": 4200.0,
+      "latency_p99_ms": 7900.0,
+      "latency_p95_vs_baseline": 1.6,
+      "ratelimit_headroom_min": 0.045,
+      "inline_fallback_ratio": 0.34,
+      "provider_status_code": null,
+      "ewma_error_rate": 0.09
+    },
+    "5m": {
+      "request_count": 1840,
+      "error_rate": 0.12,
+      "error_rate_429": 0.08,
+      "error_rate_5xx": 0.03,
+      "error_rate_timeout": 0.01,
+      "latency_p50_ms": 900.0,
+      "latency_p95_ms": 4200.0,
+      "latency_p99_ms": 7900.0,
+      "latency_p95_vs_baseline": 1.6,
+      "ratelimit_headroom_min": 0.045,
+      "inline_fallback_ratio": 0.34,
+      "provider_status_code": null,
+      "ewma_error_rate": 0.09
+    },
+    "15m": {
+      "request_count": 5100,
+      "error_rate": 0.07
+    },
+    "1h": {
+      "request_count": 19000,
+      "error_rate": 0.02
+    }
+  },
+  "static": {
+    "tier": 2,
+    "provider": "openai",
+    "model": "gpt-5.4",
+    "fail_mode": "open",
+    "routing_state": "degraded",
+    "breaker_state": "half_open",
+    "provider_status": "partial_outage",
+    "budget_headroom": 0.46,
+    "model_context_limit": 128000,
+    "days_to_model_deprecation": null,
+    "days_to_credential_expiry": 41,
+    "hour_of_day_utc": 9,
+    "day_of_week_utc": 4,
+    "agent_age_days": 37.5,
+    "peer_group": "tier:2|kind:copilot|pk:openai|mc:large"
+  },
+  "observation_coverage": 1.0,
+  "baseline_ref": "own/how4w"
+}

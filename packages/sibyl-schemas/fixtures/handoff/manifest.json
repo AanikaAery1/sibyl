@@ -1,0 +1,71 @@
+{
+  "area": "handoff",
+  "cases": [
+    {
+      "file": "valid/packet_checkpoint_fidelity.json",
+      "schema": "sibyl-handoff/1",
+      "valid": true
+    },
+    {
+      "file": "valid/packet_sdk_request_only.json",
+      "schema": "sibyl-handoff/1",
+      "valid": true
+    },
+    {
+      "file": "invalid/request_only_with_pending_steps.json",
+      "schema": "sibyl-handoff/1",
+      "valid": false,
+      "error_pointer": "/pending_steps",
+      "why": "request_only packets carry no pending steps"
+    },
+    {
+      "file": "invalid/sdk_assembled_with_rule_trigger.json",
+      "schema": "sibyl-handoff/1",
+      "valid": false,
+      "error_pointer": "/reason/trigger/kind",
+      "why": "SDK-assembled packets must use trigger sdk_explicit"
+    },
+    {
+      "file": "invalid/plain_language_too_short.json",
+      "schema": "sibyl-handoff/1",
+      "valid": false,
+      "error_pointer": "/reason/plain_language",
+      "why": "plain_language >= 20 chars"
+    },
+    {
+      "file": "invalid/next_action_too_short.json",
+      "schema": "sibyl-handoff/1",
+      "valid": false,
+      "error_pointer": "/next_action",
+      "why": "next_action >= 5 chars"
+    },
+    {
+      "file": "invalid/unknown_failure_mode.json",
+      "schema": "sibyl-handoff/1",
+      "valid": false,
+      "error_pointer": "/reason/failure_mode",
+      "why": "failure_mode value set"
+    },
+    {
+      "file": "invalid/extra_top_level_field.json",
+      "schema": "sibyl-handoff/1",
+      "valid": false,
+      "error_pointer": "",
+      "why": "additionalProperties false"
+    },
+    {
+      "file": "invalid/deadline_bad_source.json",
+      "schema": "sibyl-handoff/1",
+      "valid": false,
+      "error_pointer": "/deadline/derived_from",
+      "why": "derived_from value set"
+    },
+    {
+      "file": "invalid/tier_out_of_range.json",
+      "schema": "sibyl-handoff/1",
+      "valid": false,
+      "error_pointer": "/deadline/tier",
+      "why": "tier 1..3"
+    }
+  ]
+}

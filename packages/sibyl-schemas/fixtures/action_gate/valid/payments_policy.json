@@ -1,0 +1,126 @@
+{
+  "schema": "sibyl-action-policy/1",
+  "policy_id": "0192767f-0000-7000-8000-0000000ac001",
+  "version": 3,
+  "default_effect": "escalate",
+  "tool_allowlist_enforced": true,
+  "tool_allowlist": [
+    "payments.*",
+    "crm.lookup",
+    "email.send",
+    "search.*"
+  ],
+  "sensitive_tools": [
+    "payments.*"
+  ],
+  "external_tools": [
+    "email.send"
+  ],
+  "hold_timeout_s": 900,
+  "rules": [
+    {
+      "rule_id": "transfer-over-limit",
+      "tool": "payments.transfer",
+      "when": {
+        "gt": [
+          "/amount",
+          10000
+        ]
+      },
+      "effect": "block",
+      "reason": "Transfers above 10,000 are not authorised for this agent"
+    },
+    {
+      "rule_id": "transfer-currency",
+      "tool": "payments.transfer",
+      "when": {
+        "not": {
+          "in": [
+            "/currency",
+            [
+              "INR",
+              "USD"
+            ]
+          ]
+        }
+      },
+      "effect": "block",
+      "reason": "Only INR and USD transfers are allowed"
+    },
+    {
+      "rule_id": "transfer-daily-cap",
+      "tool": "payments.transfer",
+      "when": {
+        "all": [
+          {
+            "exists": "/to_account"
+          },
+          {
+            "le": [
+              "/amount",
+              10000
+            ]
+          }
+        ]
+      },
+      "cumulative": {
+        "sum": "/amount",
+        "max": 50000,
+        "window_s": 86400
+      },
+      "effect": "allow",
+      "reason": "Within the per-transfer limit and the 50,000 daily cap"
+    },
+    {
+      "rule_id": "refund-burst",
+      "tool": "payments.refund",
+      "cumulative": {
+        "count": true,
+        "max": 20,
+        "window_s": 60,
+        "per": "/customer_id",
+        "on_exceed": "block"
+      },
+      "effect": "escalate",
+      "reason": "Refunds need a person; more than 20 a minute per customer is blocked"
+    },
+    {
+      "rule_id": "no-pii-out",
+      "tool": "email.send",
+      "data_class": {
+        "secrets": true,
+        "pii": [
+          "credit_card",
+          "iban",
+          "national_id"
+        ]
+      },
+      "effect": "block",
+      "reason": "Card, bank and national ids never leave by email"
+    },
+    {
+      "rule_id": "email-internal-only",
+      "tool": "email.send",
+      "when": {
+        "matches": [
+          "/to",
+          "[A-Za-z0-9._%+-]+@meridian\\.example"
+        ]
+      },
+      "effect": "allow",
+      "reason": "Internal recipients only"
+    },
+    {
+      "rule_id": "reads",
+      "tool": "search.*",
+      "effect": "allow",
+      "reason": "Searches are read-only"
+    },
+    {
+      "rule_id": "crm",
+      "tool": "crm.lookup",
+      "effect": "allow",
+      "reason": "Lookups are read-only"
+    }
+  ]
+}

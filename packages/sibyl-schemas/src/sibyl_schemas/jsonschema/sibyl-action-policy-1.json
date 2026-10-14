@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sibyl.dev/schemas/sibyl-action-policy/1",
+  "title": "sibyl-action-policy/1",
+  "description": "Action Gate policy (D48, ACTION-GATE.md §1): evaluated before a tool call executes, by the SDK and the gateway, from the signed policy snapshot. Order: tool allowlist (when enforced), then rules in order (first match wins), then default_effect, tightened to escalate for sensitive_tools. Predicates are a JSON AST, one operator per node, never evaluated as code. Two checks are semantic and live in the model only: rule_id values are unique within a policy, and every matches pattern passes the safe-regex admission (no nested quantifiers, backreferences or lookaround; anchored; length-capped).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "policy_id",
+    "version",
+    "default_effect",
+    "tool_allowlist_enforced",
+    "tool_allowlist",
+    "sensitive_tools",
+    "external_tools",
+    "hold_timeout_s",
+    "rules"
+  ],
+  "properties": {
+    "schema": {
+      "const": "sibyl-action-policy/1"
+    },
+    "policy_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "default_effect": {
+      "enum": [
+        "allow",
+        "escalate"
+      ],
+      "x-sibyl-enum": "ActionEffect",
+      "x-sibyl-enum-subset": "default"
+    },
+    "tool_allowlist_enforced": {
+      "type": "boolean",
+      "description": "When true, a tool matching no tool_allowlist glob is blocked before any rule"
+    },
+    "tool_allowlist": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/tool_list"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sensitive_tools": {
+      "$ref": "#/$defs/tool_list",
+      "description": "Unmatched calls escalate; enforcement points fail closed without a fresh snapshot"
+    },
+    "external_tools": {
+      "$ref": "#/$defs/tool_list",
+      "description": "Tools that send data outside the tenant; data_class rules apply only to these"
+    },
+    "hold_timeout_s": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 86400,
+      "description": "A held (escalated) action is denied when nobody decides within this time"
+    },
+    "rules": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "tool_allowlist_enforced": {
+        "const": true
+      }
+    },
+    "required": [
+      "tool_allowlist_enforced"
+    ]
+  },
+  "then": {
+    "properties": {
+      "tool_allowlist": {
+        "type": "array"
+      }
+    }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "pointer": {
+      "type": "string",
+      "pattern": "^(/([^~/]|~[01])*)*$",
+      "maxLength": 256,
+      "description": "RFC 6901 JSON Pointer into the tool arguments"
+    },
+    "tool_glob": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@*?\\[\\]-]{1,128}$",
+      "description": "Exact tool name or glob: * is any run of characters, ? one character, everything else literal"
+    },
+    "tool_list": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "$ref": "#/$defs/tool_glob"
+      }
+    },
+    "number": {
+      "type": "number"
+    },
+    "scalar": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "maxLength": 1024
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "scalar_set": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/scalar"
+      }
+    },
+    "pointer_scalar": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/pointer"
+        },
+        {
+          "$ref": "#/$defs/scalar"
+        }
+      ]
+    },
+    "pointer_number": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/pointer"
+        },
+        {
+          "$ref": "#/$defs/number"
+        }
+      ]
+    },
+    "pointer_set": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/pointer"
+        },
+        {
+          "$ref": "#/$defs/scalar_set"
+        }
+      ]
+    },
+    "pointer_regex": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/pointer"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Anchored (full match); admitted only when it passes the safe-regex check"
+        }
+      ]
+    },
+    "predicate": {
+      "description": "One operator per node. Comparisons are three-valued: a wrong-typed value is indeterminate (matches block/escalate rules, never allow rules); an absent path is false.",
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["eq"], "properties": {"eq": {"$ref": "#/$defs/pointer_scalar"}}},
+        {"type": "object", "additionalProperties": false, "required": ["ne"], "properties": {"ne": {"$ref": "#/$defs/pointer_scalar"}}},
+        {"type": "object", "additionalProperties": false, "required": ["lt"], "properties": {"lt": {"$ref": "#/$defs/pointer_number"}}},
+        {"type": "object", "additionalProperties": false, "required": ["le"], "properties": {"le": {"$ref": "#/$defs/pointer_number"}}},
+        {"type": "object", "additionalProperties": false, "required": ["gt"], "properties": {"gt": {"$ref": "#/$defs/pointer_number"}}},
+        {"type": "object", "additionalProperties": false, "required": ["ge"], "properties": {"ge": {"$ref": "#/$defs/pointer_number"}}},
+        {"type": "object", "additionalProperties": false, "required": ["in"], "properties": {"in": {"$ref": "#/$defs/pointer_set"}}},
+        {"type": "object", "additionalProperties": false, "required": ["not_in"], "properties": {"not_in": {"$ref": "#/$defs/pointer_set"}}},
+        {"type": "object", "additionalProperties": false, "required": ["matches"], "properties": {"matches": {"$ref": "#/$defs/pointer_regex"}}},
+        {"type": "object", "additionalProperties": false, "required": ["exists"], "properties": {"exists": {"$ref": "#/$defs/pointer"}}},
+        {"type": "object", "additionalProperties": false, "required": ["all"], "properties": {"all": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"$ref": "#/$defs/predicate"}}}},
+        {"type": "object", "additionalProperties": false, "required": ["any"], "properties": {"any": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"$ref": "#/$defs/predicate"}}}},
+        {"type": "object", "additionalProperties": false, "required": ["not"], "properties": {"not": {"$ref": "#/$defs/predicate"}}}
+      ]
+    },
+    "cumulative": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max",
+        "window_s"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "sum"
+          ]
+        },
+        {
+          "required": [
+            "count"
+          ]
+        }
+      ],
+      "properties": {
+        "sum": {
+          "$ref": "#/$defs/pointer",
+          "description": "Non-negative amount to add; unreadable or negative takes on_exceed"
+        },
+        "count": {
+          "const": true
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0
+        },
+        "window_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2678400
+        },
+        "per": {
+          "$ref": "#/$defs/pointer",
+          "description": "Keep a separate counter per value at this pointer (e.g. /customer_id)"
+        },
+        "on_exceed": {
+          "enum": [
+            "escalate",
+            "block"
+          ],
+          "x-sibyl-enum": "ActionEffect",
+          "x-sibyl-enum-subset": "restrictive",
+          "description": "Default escalate"
+        }
+      }
+    },
+    "data_class": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "secrets",
+        "pii"
+      ],
+      "properties": {
+        "secrets": {
+          "type": "boolean",
+          "description": "Match when any argument scrubs as a secret (detectors/v1, tool_args field)"
+        },
+        "pii": {
+          "type": "array",
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(email|phone|credit_card|iban|ip_address|national_id|postal_address)$"
+          },
+          "description": "pii_standard detector ids (sibyl_schemas.pii)"
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "tool",
+        "effect",
+        "reason"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+        },
+        "tool": {
+          "$ref": "#/$defs/tool_glob"
+        },
+        "when": {
+          "$ref": "#/$defs/predicate"
+        },
+        "cumulative": {
+          "$ref": "#/$defs/cumulative"
+        },
+        "data_class": {
+          "$ref": "#/$defs/data_class"
+        },
+        "effect": {
+          "enum": [
+            "allow",
+            "escalate",
+            "block"
+          ],
+          "x-sibyl-enum": "ActionEffect"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Shown to people and recorded in the audit"
+        }
+      }
+    }
+  }
+}

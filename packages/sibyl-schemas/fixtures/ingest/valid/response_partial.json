@@ -1,0 +1,22 @@
+{
+  "schema": "sibyl-ingest-response/1",
+  "batch_id": "019276c0-0000-7000-8000-000000000001",
+  "accepted": 412,
+  "rejected": [
+    {
+      "index": 17,
+      "event_id": "019276c0-0000-7000-8000-000000000011",
+      "reason": "schema_invalid",
+      "detail": "attrs.latency_ms: -3 is less than the minimum of 0"
+    },
+    {
+      "index": 90,
+      "event_id": "019276c0-0000-7000-8000-00000000005a",
+      "reason": "outside_retention"
+    }
+  ],
+  "warnings": [
+    "semconv 1.36 attribute gen_ai.system mapped to gen_ai.provider.name on 3 events"
+  ],
+  "replayed": false
+}

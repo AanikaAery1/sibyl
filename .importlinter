@@ -1,0 +1,44 @@
+[importlinter]
+root_packages =
+    sibyl_schemas
+    sibyl
+    sibyl_mcp
+    sibyl_control
+    sibyl_gateway
+    sibyl_sim
+
+[importlinter:contract:gateway-isolation]
+name = Gateway imports schemas only, never control
+type = forbidden
+source_modules = sibyl_gateway
+forbidden_modules =
+    sibyl_control
+    sibyl_sim
+
+[importlinter:contract:sdk-isolation]
+name = SDK (Apache-2) imports schemas only
+type = forbidden
+source_modules = sibyl
+forbidden_modules =
+    sibyl_control
+    sibyl_gateway
+    sibyl_sim
+
+[importlinter:contract:schemas-leaf]
+name = Schemas depend on nothing in the workspace
+type = forbidden
+source_modules = sibyl_schemas
+forbidden_modules =
+    sibyl
+    sibyl_control
+    sibyl_gateway
+    sibyl_sim
+
+[importlinter:contract:mcp-isolation]
+name = MCP server (Apache-2) imports the SDK and schemas only
+type = forbidden
+source_modules = sibyl_mcp
+forbidden_modules =
+    sibyl_control
+    sibyl_gateway
+    sibyl_sim

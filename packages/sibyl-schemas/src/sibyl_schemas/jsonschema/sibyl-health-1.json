@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sibyl.dev/schemas/sibyl-health/1",
+  "title": "sibyl-health/1 (GET /api/v1/agents/{id}/health)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "health_snapshot_id",
+    "tenant_id",
+    "agent_id",
+    "computed_at",
+    "window",
+    "score",
+    "status",
+    "provisional",
+    "factors",
+    "horizons",
+    "predicted_failure_mode",
+    "feature_snapshot_ref",
+    "policy_version"
+  ],
+  "properties": {
+    "schema": {
+      "const": "sibyl-health/1"
+    },
+    "health_snapshot_id": {
+      "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/uuidv7"
+    },
+    "tenant_id": {
+      "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/uuid"
+    },
+    "agent_id": {
+      "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/uuid"
+    },
+    "computed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "grain_s"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "grain_s": {
+          "enum": [
+            60,
+            300,
+            900,
+            3600
+          ],
+          "x-sibyl-enum": "WindowGrainS"
+        }
+      }
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "status": {
+      "enum": [
+        "healthy",
+        "watch",
+        "degraded",
+        "failed"
+      ],
+      "x-sibyl-enum": "HealthBand"
+    },
+    "provisional": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flag",
+        "events_seen",
+        "events_needed"
+      ],
+      "properties": {
+        "flag": {
+          "type": "boolean"
+        },
+        "events_seen": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events_needed": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "observation_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "factors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/factor"
+      }
+    },
+    "horizons": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "15m",
+        "1h",
+        "24h"
+      ],
+      "properties": {
+        "15m": {
+          "$ref": "#/$defs/prediction"
+        },
+        "1h": {
+          "$ref": "#/$defs/prediction"
+        },
+        "24h": {
+          "$ref": "#/$defs/prediction"
+        }
+      }
+    },
+    "predicted_failure_mode": {
+      "oneOf": [
+        {
+          "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/failure_mode"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "recommended_action": {
+      "enum": [
+        "none",
+        "watch",
+        "reroute_to_fallback",
+        "reroute_to_backup_agent",
+        "throttle",
+        "trim_context",
+        "quarantine",
+        "handoff",
+        "await_approval",
+        null
+      ],
+      "x-sibyl-enum": "RecommendedAction"
+    },
+    "feature_snapshot_ref": {
+      "type": "string",
+      "pattern": "^fs_[0-9a-f-]{36}$"
+    },
+    "policy_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "routing_state": {
+      "enum": [
+        "active",
+        "degraded",
+        "awaiting_approval",
+        "failed_over",
+        "failing_back",
+        "quarantined",
+        "killed"
+      ],
+      "x-sibyl-enum": "RoutingState"
+    }
+  },
+  "$defs": {
+    "factor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "weight",
+        "value",
+        "threshold",
+        "direction",
+        "explanation"
+      ],
+      "properties": {
+        "rule": {
+          "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/rule_id"
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "penalty": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "value": {
+          "type": [
+            "number",
+            "string",
+            "boolean"
+          ]
+        },
+        "threshold": {
+          "type": [
+            "number",
+            "string",
+            "boolean"
+          ]
+        },
+        "direction": {
+          "enum": [
+            "above",
+            "below",
+            "equals",
+            "rising",
+            "falling"
+          ],
+          "x-sibyl-enum": "FactorDirection"
+        },
+        "explanation": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "evidence": {
+          "type": "string",
+          "description": "Console deep link or query"
+        },
+        "kind": {
+          "enum": [
+            "detected",
+            "leading"
+          ],
+          "x-sibyl-enum": "RuleKind"
+        },
+        "horizon_s": {
+          "type": "integer"
+        }
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probability_band",
+        "source",
+        "confidence"
+      ],
+      "properties": {
+        "probability_band": {
+          "enum": [
+            "0.05",
+            "0.25",
+            "0.60",
+            "0.90"
+          ],
+          "x-sibyl-enum": "ProbabilityBand"
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Only from a calibrated model source"
+        },
+        "predicted_failure_mode": {
+          "oneOf": [
+            {
+              "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/failure_mode"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^(rules/v\\d+|model/[a-z0-9_-]+:[A-Za-z0-9._-]+)$"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "x-sibyl-enum": "Confidence"
+        },
+        "contributing_rules": {
+          "type": "array",
+          "items": {
+            "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/rule_id"
+          }
+        },
+        "abstained": {
+          "type": "boolean",
+          "description": "Model abstained; rules filled this horizon"
+        }
+      }
+    }
+  }
+}

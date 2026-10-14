@@ -1,0 +1,28 @@
+{
+  "kid": "snap-2026-10-v1",
+  "alg": "Ed25519",
+  "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+  "body": {
+    "sequence": 1,
+    "issued_at": "2026-10-01T00:00:00.000Z",
+    "keys": [
+      {
+        "kid": "snap-2026-10-v1",
+        "alg": "Ed25519",
+        "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+        "status": "active",
+        "not_after": "2027-01-01T00:00:00.000Z"
+      }
+    ],
+    "next_key": {
+      "kid": "snap-2026-11-v1",
+      "alg": "Ed25519",
+      "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+    }
+  },
+  "next_key": {
+    "kid": "snap-rogue",
+    "alg": "Ed25519",
+    "public_key": "2ssM46flFC3ncbQODEa_tyRLafGwG4sHWbhwfbJYOSs"
+  }
+}

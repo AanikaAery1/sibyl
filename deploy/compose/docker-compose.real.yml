@@ -1,0 +1,73 @@
+# Sibyl REAL deployment: an override on top of docker-compose.yml for plugging in real agents.
+#
+#   make up                      # = deploy/compose/real.sh up (init, build, bootstrap, start)
+#   make status | logs | down
+#
+# By hand (what real.sh runs; the env file is deploy/compose/.env.real):
+#   docker compose -p sibyl-real -f docker-compose.yml -f docker-compose.real.yml \
+#     --env-file .env.real [--profile dex] up -d --wait
+#
+# Differences from the demo stack (D55):
+# * No simulator: the `sim` profile is never enabled, the gateway does not look for the sim CA,
+#   no `sim` dev host is registered, and SIBYL_DEMO is off, so credentials and snapshots go to
+#   real providers (R55 applies only to demo deployments).
+# * OIDC is configurable: the bundled dex (profile `dex`, one Platform Admin from
+#   dex/config.real.yaml) by default, or any OIDC issuer via SIBYL_OIDC_ISSUER (dex not started).
+# * TLS via Caddy is configurable (caddy/Caddyfile.real): Caddy's local CA by default, ACME
+#   certificates for a public DNS name, or your own certificate files.
+# * Listeners bind SIBYL_BIND_ADDRESS (127.0.0.1 by default; 0.0.0.0 to serve other hosts).
+#   Postgres stays on loopback only, for backups (ops/backup).
+# Secrets are the same file secrets as the demo (init-env.sh; never committed).
+#
+# Requires Docker Compose >= 2.24.4 (the !override tag).
+
+x-real-oidc: &real-oidc
+  SIBYL_OIDC_ISSUER: ${SIBYL_OIDC_ISSUER_EFFECTIVE:?run deploy/compose/real.sh up (writes SIBYL_OIDC_ISSUER_EFFECTIVE)}
+  SIBYL_OIDC_INTERNAL_URL: ${SIBYL_OIDC_INTERNAL_EFFECTIVE:-}
+
+services:
+  dex:
+    profiles: ["dex"]
+    environment:
+      DEX_CONFIG_TEMPLATE: /etc/sibyl-dex/config.real.yaml
+      SIBYL_ADMIN_EMAIL: ${SIBYL_ADMIN_EMAIL:-admin@sibyl.local}
+      SIBYL_ADMIN_SUBJECT: ${SIBYL_DEX_ADMIN_ID:?run deploy/compose/real.sh up (writes SIBYL_DEX_ADMIN_ID)}
+
+  caddy:
+    environment:
+      SIBYL_SITE_HOST: ${SIBYL_SITE_HOST:-localhost}
+      SIBYL_TLS: ${SIBYL_TLS:-internal}
+      SIBYL_PUBLIC_AUTHORITY: ${SIBYL_PUBLIC_AUTHORITY:-localhost:8443}
+    volumes: !override
+      - ./caddy/Caddyfile.real:/etc/caddy/Caddyfile:ro
+      - ${SIBYL_TLS_CERT_DIR:-./caddy}:/certs:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports: !override
+      - "${SIBYL_BIND_ADDRESS:-127.0.0.1}:${SIBYL_PORT_HTTPS:-8443}:8443"
+      - "${SIBYL_BIND_ADDRESS:-127.0.0.1}:${SIBYL_PORT_GATEWAY_TLS:-8444}:8444"
+      - "${SIBYL_BIND_ADDRESS:-127.0.0.1}:${SIBYL_PORT_INGEST_TLS:-8445}:8445"
+
+  api:
+    environment:
+      <<: *real-oidc
+      SIBYL_DEMO: "false"
+  ingest:
+    environment:
+      <<: *real-oidc
+      SIBYL_DEMO: "false"
+  worker:
+    environment:
+      <<: *real-oidc
+      SIBYL_DEMO: "false"
+  bootstrap:
+    environment:
+      <<: *real-oidc
+  migrate:
+    environment:
+      <<: *real-oidc
+
+  gateway:
+    environment:
+      SIBYL_DEV_HOSTS: ""
+      SIBYL_SIM_CA_URL: ""

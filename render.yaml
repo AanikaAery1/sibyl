@@ -1,0 +1,27 @@
+# Public demo of the Sibyl console on Render (D55 "demo"): the console image in demo mode, which
+# serves dummy data and the scripted scenario from memory. No API, database, keys or real data;
+# nothing here can reach a real deployment. One always-on instance: the demo world lives in the
+# server's memory, so every visitor shares it, and it resets when the instance restarts.
+#
+# Deploy: Render dashboard > New > Blueprint > this repository (grant Render's GitHub app access
+# to it once). Every push to main redeploys.
+services:
+  - type: web
+    name: sibyl-demo
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    rootDir: console
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - console/**
+    envVars:
+      - key: SIBYL_CONSOLE_MODE
+        value: demo
+      - key: NODE_ENV
+        value: production

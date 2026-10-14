@@ -1,0 +1,22 @@
+# Licence waivers for ci/licences.py (D15, project-shipper 3.4).
+# Each waiver needs a decision-log reference; an unused waiver is reported.
+# Only the chair adds entries, at a gate, after the review is recorded in DECISIONS.md.
+#
+# [[waiver]]
+# package = "example-lib"
+# decision = "D47"
+# reason = "LGPL-3.0, dynamically linked, unmodified; reviewed 2026-10-12"
+
+# Console (npm) entries carry `ecosystem = "npm"` and gate as `npm:<name>`.
+
+[[waiver]]
+package = "@axe-core/playwright"
+ecosystem = "npm"
+decision = "B15"
+reason = "MPL-2.0, dev/test-only (console Playwright accessibility tests); never bundled in the console image; ruled 2026-10-11"
+
+[[waiver]]
+package = "axe-core"
+ecosystem = "npm"
+decision = "B15"
+reason = "MPL-2.0, dev/test-only (pulled in by @axe-core/playwright); never bundled in the console image; ruled 2026-10-11"

@@ -1,0 +1,78 @@
+# dex: dev/demo OIDC issuer (ADR-8; Sibyl is a relying party only).
+#
+# One issuer serves the three demo tenants (D29): meridian, northstar, sandbox.
+# Tenant membership and roles are NOT carried by dex; they are Sibyl role bindings
+# seeded from ./personas.yaml (R56). api resolves the tenant first and checks `iss`
+# against that tenant's oidc_issuer, so a shared issuer cannot cross tenants (API 2.1).
+#
+# Placeholders (__X__) are rendered by ./render.sh from env/dex.env at container start:
+#   __SIBYL_PUBLIC_URL__        e.g. https://localhost:8443 (ci/worktree.sh offsets the port)
+#   __DEX_PERSONA_HASH__        bcrypt hash of the shared demo password (base64 in env)
+# Client secrets come from the environment via secretEnv. Nothing secret is committed.
+
+issuer: __SIBYL_PUBLIC_URL__/dex
+
+storage:
+  type: memory
+
+web:
+  http: 0.0.0.0:5556
+
+telemetry:
+  http: 0.0.0.0:5558
+
+logger:
+  level: info
+  format: json
+
+oauth2:
+  responseTypes: ["code"]
+  skipApprovalScreen: true
+  alwaysShowLoginScreen: true
+  passwordConnector: local
+
+expiry:
+  idTokens: 1h
+  signingKeys: 6h
+  refreshTokens:
+    validIfNotUsedFor: 8h
+    absoluteLifetime: 24h
+
+enablePasswordDB: true
+
+staticClients:
+  # Console BFF: confidential client, PKCE code flow (API 2.1).
+  - id: sibyl-console
+    name: Sibyl console
+    secretEnv: DEX_CONSOLE_CLIENT_SECRET
+    redirectURIs:
+      - __SIBYL_PUBLIC_URL__/api/v1/auth/callback
+  # CLI and scripts: public client, PKCE, loopback redirect (aud=sibyl-api via trustedPeers).
+  - id: sibyl-cli
+    name: Sibyl CLI
+    public: true
+    redirectURIs:
+      - http://127.0.0.1:8765/callback
+      - http://localhost:8765/callback
+  # Audience for bearer JWTs presented to api by CLI and scripts.
+  - id: sibyl-api
+    name: Sibyl API
+    secretEnv: DEX_API_CLIENT_SECRET
+    trustedPeers: ["sibyl-cli", "sibyl-console"]
+    redirectURIs: []
+
+# Demo personas (D29). Same password for all three, rendered from env; stable userIDs
+# are the OIDC `sub` that personas.yaml binds to tenant roles.
+staticPasswords:
+  - email: admin@demo.sibyl.example
+    username: admin
+    userID: 0192a000-0000-7000-8000-00000000d001
+    hash: __DEX_PERSONA_HASH__
+  - email: operator@demo.sibyl.example
+    username: operator
+    userID: 0192a000-0000-7000-8000-00000000d002
+    hash: __DEX_PERSONA_HASH__
+  - email: auditor@demo.sibyl.example
+    username: auditor
+    userID: 0192a000-0000-7000-8000-00000000d003
+    hash: __DEX_PERSONA_HASH__

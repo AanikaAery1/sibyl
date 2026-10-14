@@ -1,0 +1,22 @@
+# S-27 D22 forced hold (ML §8.2; ROADMAP M3 3.4): a tier-1 PII agent whose plan says fail_safe;
+# the approval expires and the worker forces `hold` (audit `hold_forced_d22`).
+id: S-27
+title: D22 forced hold on a tier-1 PII agent
+requires: [S, U]
+gate_class: none
+duration_s: 900
+tenants:
+  meridian:
+    agents:
+      refund-agent: busy   # tier 1, reads crm (pii)
+chaos:
+  - {at: 30, double: anthropic-stub, agents: [refund-agent], set: {outage: true}}
+labels:
+  - {agent: refund-agent, kind: onset, t: 30, failure_mode: provider_outage}
+expect:
+  - tier_gate: {agent: refund-agent, mode: approval}
+  - action: {agent: refund-agent, to_state: degraded, by_t: 900}
+    note: "approval timeout -> forced hold (D22) -> degraded; audit annotation hold_forced_d22"
+  - audit_has: {verbs: [approval.expired]}
+personas:
+  - {at: end, persona: auditor, do: audit_check}

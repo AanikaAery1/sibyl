@@ -1,0 +1,42 @@
+# Demo tenants and persona role bindings: the seed contract for the tenant CLI /
+# migrate seed (lane W0-DB / tenant CLI). dex authenticates; Sibyl authorises.
+#
+# Sources: D29 (tenants, personas), R56 / project-shipper B1 (bindings).
+# The On-call Operator's operator + security_admin pair is a demo "duty officer" convenience, not a
+# recommended production role design. Kill and erasure approval stay step-up.
+# `subject` must equal the dex staticPasswords userID (tested in ci/tests).
+
+tenants:
+  meridian:
+    display_name: Meridian Logistics
+    agents: 20
+  northstar:
+    display_name: Northstar Health
+    agents: 3          # isolation proof
+  sandbox:
+    display_name: Sandbox
+    agents: 0          # must stay empty for the harness (S-21)
+
+personas:
+  - username: admin
+    email: admin@demo.sibyl.example
+    subject: 0192a000-0000-7000-8000-00000000d001
+    display_name: Platform Admin
+  - username: operator
+    email: operator@demo.sibyl.example
+    subject: 0192a000-0000-7000-8000-00000000d002
+    display_name: On-call Operator
+  - username: auditor
+    email: auditor@demo.sibyl.example
+    subject: 0192a000-0000-7000-8000-00000000d003
+    display_name: Compliance Auditor
+
+bindings:
+  - {persona: admin, tenant: meridian, roles: [owner]}
+  - {persona: admin, tenant: northstar, roles: [owner]}
+  - {persona: admin, tenant: sandbox, roles: [owner]}
+  - {persona: operator, tenant: meridian, roles: [operator, security_admin]}
+  - {persona: operator, tenant: northstar, roles: [operator, security_admin]}
+  - {persona: auditor, tenant: meridian, roles: [auditor]}
+  - {persona: auditor, tenant: northstar, roles: [auditor]}
+  # B3: sandbox holds only the Platform Admin (onboarding demo); nobody else is bound there.

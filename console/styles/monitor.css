@@ -1,0 +1,268 @@
+/* ════════════════════════════════════════════════════════════════
+   Wave 3 monitoring: model drift, Sentinel (advisory AI), run tree,
+   plug-and-play onboarding. Solid panels; colour only for meaning.
+   "Advisory" (indigo) marks Sentinel output so it never reads as a
+   human decision (purple) or a state (bands / routing).
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  --advisory: #4544b8;
+  --advisory-dot: #5e5ce6;
+  --advisory-tint: rgba(94, 92, 230, 0.1);
+  --advisory-edge: rgba(94, 92, 230, 0.32);
+}
+:root[data-theme="dark"] {
+  --advisory: #b4b3ff;
+  --advisory-dot: #7d7aff;
+  --advisory-tint: rgba(125, 122, 255, 0.16);
+  --advisory-edge: rgba(125, 122, 255, 0.4);
+}
+
+.pill[data-tone="advisory"] { background: var(--advisory-tint); color: var(--advisory); }
+.pill[data-tone="advisory"] .dot { background: var(--advisory-dot); }
+.banner[data-tone="advisory"] { background: var(--advisory-tint); color: var(--advisory); }
+.banner[data-tone="quiet"] { background: var(--sunken); color: var(--text-2); }
+
+/* ── Sentinel advisory card: dashed indigo edge, never a filled decision panel ── */
+.advisory-card {
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--advisory-edge), var(--sh-card);
+  position: relative;
+  overflow: hidden;
+}
+.advisory-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: repeating-linear-gradient(180deg, var(--advisory-dot) 0 6px, transparent 6px 10px);
+}
+.advisory-card .advisory-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 14px var(--row-x) 10px;
+}
+.advisory-card .advisory-head h3 {
+  font-size: var(--fs-headline);
+  font-weight: 650;
+  letter-spacing: var(--track-head);
+  margin-right: auto;
+}
+.advisory-card .advisory-body {
+  padding: 0 var(--row-x) 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.advisory-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-caption);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--advisory);
+}
+
+/* ── Provenance strip (provider · model · prompt hash · tokens · cost) ── */
+.provenance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: var(--fs-footnote);
+  color: var(--text-3);
+}
+.provenance b {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+/* ── Drift feature table: excess bar with the watch tick and drift end ── */
+.excess {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  width: 96px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--track);
+  overflow: visible;
+}
+.excess > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--excess, var(--text-4));
+}
+.excess > i {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1.5px;
+  background: var(--text-3);
+  border-radius: 1px;
+}
+.excess[data-verdict="watch"] { --excess: var(--watch-dot); }
+.excess[data-verdict="drift"] { --excess: var(--degraded-dot); }
+.excess[data-verdict="none"] { --excess: var(--faint); }
+
+.feature-table td.num,
+.feature-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.feature-table tr[data-verdict="drift"] td:first-child { box-shadow: inset 3px 0 0 var(--degraded-dot); }
+.feature-table tr[data-verdict="watch"] td:first-child { box-shadow: inset 3px 0 0 var(--watch-dot); }
+.feature-table tr[data-status="insufficient_samples"] td { color: var(--text-3); }
+
+.identity-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--moved);
+  font-weight: 600;
+  font-size: var(--fs-footnote);
+}
+
+/* ── Run tree: indented rails, one row per step ── */
+.runtree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.runtree .runtree {
+  margin-left: 14px;
+  padding-left: 16px;
+  border-left: 1.5px solid var(--hairline-strong);
+}
+.rt-run > .rt-row {
+  font-weight: 600;
+}
+.rt-row {
+  display: grid;
+  grid-template-columns: 40px 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px var(--row-x) 6px 0;
+}
+.rt-row + .rt-row,
+.runtree > li + li > .rt-row {
+  border-top: 1px solid var(--hairline);
+}
+.rt-step {
+  font-family: var(--mono);
+  font-size: var(--fs-caption);
+  color: var(--text-3);
+  text-align: right;
+}
+.rt-glyph {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: var(--sunken);
+  color: var(--text-2);
+}
+.rt-glyph[data-kind="run"] { background: var(--accent-tint); color: var(--accent-text); }
+.rt-glyph[data-kind="handoff"] { background: var(--returning-tint); color: var(--returning); }
+.rt-main {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+.rt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  align-items: center;
+  font-size: var(--fs-footnote);
+  color: var(--text-3);
+}
+@media (max-width: 680px) {
+  .rt-row {
+    grid-template-columns: 28px 22px minmax(0, 1fr);
+  }
+  .rt-meta {
+    grid-column: 3;
+    justify-content: flex-start;
+  }
+  .runtree .runtree {
+    margin-left: 6px;
+    padding-left: 10px;
+  }
+}
+
+/* ── Onboarding snippets ── */
+.snippet-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.snippet {
+  position: relative;
+}
+.snippet .copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+/* ── Budget meter ── */
+.budget .meter span { --meter: var(--advisory-dot); }
+.budget[data-exhausted="true"] .meter span { --meter: var(--failed-dot); }
+
+/* Unpressed segment counts: --text-3 on the track is ~4.2:1; --text-2 clears 4.5:1 (axe, light). */
+.seg [aria-pressed="false"] .count,
+.seg [aria-selected="false"] .count {
+  color: var(--text-2);
+}
+
+/* Fleet tile drift hint */
+.tile-hint {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Finding source (Sentinel vs an external monitor): same advisory family, the monitor's
+   edge dashed so a reader can tell at a glance who wrote it ── */
+.source-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-caption);
+  font-weight: 650;
+  color: var(--advisory);
+  border: 1px solid var(--advisory-edge);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.source-tag[data-source="external"] {
+  border-style: dashed;
+}
+
+/* Monitor keys: `.stack` (a flex column elsewhere) must not turn the table into flex boxes. */
+.table.keys-table {
+  display: table;
+}
+
+/* State pills in the monitor header sit on the page background, not a card: lay the tint over
+   the surface colour so the label keeps AA contrast. */
+.monitor-meta .pill[data-tone="healthy"] { background: linear-gradient(var(--healthy-tint), var(--healthy-tint)), var(--surface); }
+.monitor-meta .pill[data-tone="watch"] { background: linear-gradient(var(--watch-tint), var(--watch-tint)), var(--surface); }

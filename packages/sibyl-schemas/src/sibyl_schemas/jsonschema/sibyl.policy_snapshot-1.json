@@ -1,0 +1,841 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sibyl.dev/schemas/sibyl.policy_snapshot/1",
+  "title": "sibyl.policy_snapshot/1",
+  "description": "Signed policy snapshot body served by GET /api/v1/policy/snapshot (one tenant block per key, R26). The signature is detached: Ed25519 over the RFC 8785 canonical bytes of this body, carried in X-Sibyl-Snapshot-Kid / X-Sibyl-Snapshot-Signature or in $defs/envelope. Credentials are never in the snapshot; fallback steps carry credential ids only. TTL and grace bounds ([60, 600] s and [0, 900] s) are verifier checks (cause bad_ttl), not schema constraints, so a tampered vector reaches the right cause.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "version",
+    "issued_at",
+    "expires_at",
+    "ttl_s",
+    "grace_s",
+    "kid",
+    "tenants"
+  ],
+  "properties": {
+    "schema": {
+      "const": "sibyl.policy_snapshot/1"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991,
+      "description": "Global, strictly monotonic issue sequence (policy_snapshot_issue.version)"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "issued_at + ttl_s"
+    },
+    "ttl_s": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "grace_s": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "kid": {
+      "$ref": "#/$defs/kid"
+    },
+    "tenants": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/$defs/uuid"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/tenant_block"
+      }
+    }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "kid": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$"
+    },
+    "money": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,4})?$",
+      "description": "Decimal string, ≤ 4 dp (API §2.9)"
+    },
+    "tenant_block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routing_version",
+        "unknown_agent_fail_mode",
+        "demo_mode",
+        "capture_profiles",
+        "api_keys",
+        "providers",
+        "agents",
+        "kill_switches"
+      ],
+      "properties": {
+        "routing_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unknown_agent_fail_mode": {
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-sibyl-enum": "FailMode"
+        },
+        "demo_mode": {
+          "type": "boolean",
+          "description": "SIBYL_DEMO=1: vaulted credentials only for allowlisted sibyl-sim doubles (R55)"
+        },
+        "capture_profiles": {
+          "type": "object",
+          "minProperties": 1,
+          "description": "Effective redaction profiles referenced by agents (security-auditor §5.3)",
+          "propertyNames": {
+            "pattern": "^[a-z0-9_-]{1,32}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/capture_profile"
+          }
+        },
+        "api_keys": {
+          "type": "object",
+          "description": "prefix12 → key; both keys of a rotation pair are present during grace",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9]{12}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/api_key"
+          }
+        },
+        "providers": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/uuid"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/provider"
+          }
+        },
+        "agents": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/uuid"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/agent"
+          }
+        },
+        "kill_switches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/kill_switch"
+          }
+        },
+        "action_policies": {
+          "type": "object",
+          "maxProperties": 1024,
+          "description": "Action Gate (D48): policy_id -> active approved policy, signed once per tenant and referenced by agents' action_policies (B4). A key that differs from the document's policy_id, or an agent reference without a document, is a missing policy: enforcement fails closed for that agent's tool calls.",
+          "propertyNames": {
+            "$ref": "#/$defs/uuid"
+          },
+          "additionalProperties": {
+            "$ref": "https://sibyl.dev/schemas/sibyl-action-policy/1"
+          }
+        }
+      }
+    },
+    "api_key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key_id",
+        "secret_hash",
+        "env",
+        "scopes",
+        "agent_id",
+        "status",
+        "expires_at"
+      ],
+      "properties": {
+        "key_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "secret_hash": {
+          "$ref": "#/$defs/sha256",
+          "description": "HMAC-SHA-256(SIBYL_KEY_PEPPER, secret), hex"
+        },
+        "env": {
+          "enum": [
+            "live",
+            "test"
+          ],
+          "x-sibyl-enum": "ApiKeyEnv"
+        },
+        "scopes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "agents:read",
+              "agents:write",
+              "routing:read",
+              "killswitch:pull",
+              "gateway:proxy",
+              "ingest:write",
+              "handoff:write",
+              "actions:hold"
+            ],
+            "x-sibyl-enum": "Scope",
+            "x-sibyl-enum-subset": "MACHINE_SCOPES"
+          }
+        },
+        "agent_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Set for agent-bound keys; tier-1 agents require one (R35)"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "rotating"
+          ],
+          "x-sibyl-enum": "ApiKeyStatus",
+          "x-sibyl-enum-subset": "verifiable"
+        },
+        "rotation_grace_until": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug",
+        "provider_kind",
+        "dialect",
+        "base_url",
+        "is_enabled"
+      ],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,62}$"
+        },
+        "provider_kind": {
+          "enum": [
+            "openai",
+            "anthropic",
+            "azure_openai",
+            "bedrock",
+            "vertex",
+            "ollama",
+            "custom"
+          ],
+          "x-sibyl-enum": "ProviderKind"
+        },
+        "dialect": {
+          "enum": [
+            "openai_compatible",
+            "anthropic",
+            "gemini"
+          ],
+          "x-sibyl-enum": "Dialect"
+        },
+        "base_url": {
+          "type": "string",
+          "pattern": "^https://[^\\s]+$",
+          "maxLength": 512,
+          "description": "https only. Allowlisted at write time (is_allowlisted_base_url); dev doubles are admitted only through the database base_url_dev_host allowlist, never by this schema"
+        },
+        "is_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "model"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug",
+        "tier",
+        "fail_mode",
+        "risk_class",
+        "capture",
+        "degraded_mode",
+        "inline_fallback",
+        "primary",
+        "route",
+        "fallback_chain",
+        "limits",
+        "identity"
+      ],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_./-]{0,127}$"
+        },
+        "tier": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "fail_mode": {
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-sibyl-enum": "FailMode"
+        },
+        "risk_class": {
+          "enum": [
+            "unclassified",
+            "minimal",
+            "limited",
+            "high",
+            "unacceptable"
+          ],
+          "x-sibyl-enum": "RiskClass"
+        },
+        "capture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "profile"
+          ],
+          "properties": {
+            "mode": {
+              "enum": [
+                "full",
+                "redacted",
+                "metadata"
+              ],
+              "x-sibyl-enum": "CaptureMode"
+            },
+            "profile": {
+              "type": "string",
+              "pattern": "^[a-z0-9_-]{1,32}$",
+              "description": "Key into tenant capture_profiles"
+            }
+          }
+        },
+        "degraded_mode": {
+          "enum": [
+            "continue",
+            "safe_no_tools",
+            "queue_only"
+          ],
+          "x-sibyl-enum": "DegradedMode"
+        },
+        "inline_fallback": {
+          "type": "boolean"
+        },
+        "primary": {
+          "$ref": "#/$defs/target"
+        },
+        "route": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "target_kind",
+            "canary_pct",
+            "since"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "active",
+                "degraded",
+                "awaiting_approval",
+                "failed_over",
+                "failing_back",
+                "quarantined",
+                "killed"
+              ],
+              "x-sibyl-enum": "RoutingState"
+            },
+            "target_kind": {
+              "enum": [
+                "primary",
+                "model",
+                "agent",
+                "human_queue"
+              ],
+              "x-sibyl-enum": "TargetKind"
+            },
+            "provider_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "agent_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "step_position": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Active step of fallback_chain when routed through it; provider_id/model/agent_id carry ad hoc targets only"
+            },
+            "canary_pct": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "since": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "transition_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "operator_hold_until": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "fallback_chain": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fallback_chain"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_inflight",
+            "rps",
+            "budget_usd_month",
+            "spent_usd_month"
+          ],
+          "properties": {
+            "max_inflight": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "rps": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "budget_usd_month": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/money"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spent_usd_month": {
+              "$ref": "#/$defs/money"
+            }
+          }
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "identity_version",
+            "enforcement",
+            "allowed_models",
+            "allowed_tools",
+            "allowed_providers"
+          ],
+          "properties": {
+            "identity_version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "enforcement": {
+              "enum": [
+                "observe",
+                "block"
+              ],
+              "x-sibyl-enum": "IdentityEnforcement"
+            },
+            "allowed_models": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "allowed_tools": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "allowed_providers": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/$defs/uuid"
+              }
+            }
+          }
+        },
+        "action_policies": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "description": "Action Gate (D48): ids of the policies in the tenant's action_policies that apply to this agent, agent-specific first; absent means no action policy",
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        }
+      }
+    },
+    "fallback_chain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chain_id",
+        "version",
+        "steps"
+      ],
+      "properties": {
+        "chain_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fallback_step"
+          }
+        }
+      }
+    },
+    "fallback_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "position",
+        "kind",
+        "viable"
+      ],
+      "properties": {
+        "position": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "kind": {
+          "enum": [
+            "retry",
+            "alt_model_same_provider",
+            "alt_provider",
+            "backup_agent",
+            "degraded_safe_mode",
+            "human_queue"
+          ],
+          "x-sibyl-enum": "FallbackKind"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "agent_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "credential_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Vaulted fallback credential id (D11); the secret comes from the sealed bundle"
+        },
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "x-sibyl-enum": "StepRisk"
+        },
+        "viable": {
+          "type": "boolean",
+          "description": "false when the credential is revoked or the model/provider is disabled"
+        }
+      },
+      "description": "Identified by position within the immutable (chain_id, version)"
+    },
+    "kill_switch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kill_switch_id",
+        "scope_kind",
+        "scope_id",
+        "pulled_at"
+      ],
+      "properties": {
+        "kill_switch_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope_kind": {
+          "enum": [
+            "tenant",
+            "agent",
+            "provider"
+          ],
+          "x-sibyl-enum": "KillSwitchScope"
+        },
+        "scope_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pulled_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "envelope": {
+      "title": "Detached-signature envelope {kid, alg, sig, body}",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kid",
+        "alg",
+        "sig",
+        "body"
+      ],
+      "properties": {
+        "kid": {
+          "$ref": "#/$defs/kid"
+        },
+        "alg": {
+          "enum": [
+            "Ed25519"
+          ],
+          "x-sibyl-enum": "SignatureAlgorithm"
+        },
+        "sig": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{86}$",
+          "description": "base64url (no padding) Ed25519 signature over JCS(body)"
+        },
+        "body": {
+          "$ref": "#"
+        }
+      },
+      "description": "Signed snapshot envelope. Untrusted bytes must be parsed with parse_json_strict, which refuses duplicate members (a duplicate body is a signature bypass with last-wins parsers); a verifier also refuses kid != body.kid. Over HTTP the detached form is preferred: the response body is JCS(body) and the signature travels in X-Sibyl-Snapshot-Kid / X-Sibyl-Snapshot-Signature, so the gateway verifies the raw bytes it received (B4)."
+    },
+    "signing_key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kid",
+        "alg",
+        "public_key"
+      ],
+      "properties": {
+        "kid": {
+          "$ref": "#/$defs/kid"
+        },
+        "alg": {
+          "enum": [
+            "Ed25519"
+          ],
+          "x-sibyl-enum": "SignatureAlgorithm"
+        },
+        "public_key": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$",
+          "description": "base64url (no padding) raw 32-byte Ed25519 public key"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "retiring"
+          ],
+          "x-sibyl-enum": "SigningKeyStatus"
+        },
+        "not_after": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "key_set": {
+      "title": "/.well-known/sibyl-keys.json and GET /api/v1/policy/keys (signed key set)",
+      "description": "Ed25519 over JCS(body) by kid, an active key of the previously accepted key set (sequence 1: the pinned first key). Verifiers pin the first key and follow the rotation chain: an active key must already be trusted or have been the previous set's next_key; a signer past not_after is refused. Check order: malformed, unknown_signer, signer_expired, bad_signature, non_monotonic, chain_broken (KeySetRejectCause). Parse untrusted bytes with parse_json_strict: duplicate members are refused.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kid",
+        "alg",
+        "sig",
+        "body"
+      ],
+      "properties": {
+        "kid": {
+          "$ref": "#/$defs/kid",
+          "description": "Signing key id (an active key of the previous set)"
+        },
+        "alg": {
+          "enum": [
+            "Ed25519"
+          ],
+          "x-sibyl-enum": "SignatureAlgorithm"
+        },
+        "sig": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{86}$",
+          "description": "base64url (no padding) Ed25519 signature over JCS(body)"
+        },
+        "body": {
+          "$ref": "#/$defs/key_set_body"
+        }
+      }
+    },
+    "key_set_body": {
+      "title": "Signed content of a key set",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "issued_at",
+        "keys",
+        "next_key"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Strictly monotonic key-set sequence; 1 is self-signed by the pinned first key"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/signing_key"
+          }
+        },
+        "next_key": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/signing_key"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Pre-published successor so verifiers can pin it before rotation (R33); inside the signature, so it cannot be swapped in transit"
+        }
+      }
+    },
+    "capture_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_hash",
+        "detectors_ref"
+      ],
+      "properties": {
+        "profile_hash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "detectors_ref": {
+          "type": "string",
+          "pattern": "^detectors/v[0-9]+$",
+          "description": "Detector registry the profile builds on; must be a superset of the baseline"
+        }
+      }
+    }
+  }
+}

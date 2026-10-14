@@ -1,0 +1,163 @@
+# Sibyl release (D54): on a `v*` tag, build and push the images to GHCR (multi-arch, OCI labels,
+# SBOM and provenance attestations), then create the GitHub Release with the notes from the
+# matching CHANGELOG.md section ("## [1.0.0] ...").
+#
+#   git tag -a v1.0.0 -m "Sibyl 1.0.0" && git push origin v1.0.0
+#
+# Deploy a release: SIBYL_IMAGE_TAG=1.0.0 make up (deploy/compose/docker-compose.images.yml).
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/mk-jkc/sibyl
+
+jobs:
+  notes:
+    name: release notes from CHANGELOG.md
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        name: Version from the tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "bad tag $GITHUB_REF_NAME"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Extract the CHANGELOG section (fails when it is missing)
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md || { echo "CHANGELOG.md has no section for $VERSION"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+
+  images:
+    name: image ${{ matrix.name }}
+    needs: notes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: control
+            context: .
+            dockerfile: deploy/docker/control.Dockerfile
+            title: Sibyl control plane (api, ingest, worker, migrate)
+            licenses: LicenseRef-Proprietary
+          - name: gateway
+            context: .
+            dockerfile: deploy/docker/gateway.Dockerfile
+            title: Sibyl gateway
+            licenses: LicenseRef-Proprietary
+          - name: console
+            context: console
+            dockerfile: console/Dockerfile
+            title: Sibyl console
+            licenses: LicenseRef-Proprietary
+          - name: sim
+            context: .
+            dockerfile: deploy/docker/sim.Dockerfile
+            title: Sibyl simulator (development and demo only)
+            licenses: LicenseRef-Proprietary
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          labels: |
+            org.opencontainers.image.title=sibyl-${{ matrix.name }}
+            org.opencontainers.image.description=${{ matrix.title }}
+            org.opencontainers.image.licenses=${{ matrix.licenses }}
+            org.opencontainers.image.vendor=Sibyl
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            SIBYL_VERSION=${{ needs.notes.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+      # GitHub stores provenance attestations only for public (or organisation-owned) repositories;
+      # on this private user-owned repository the step is skipped and the SBOM and provenance
+      # attached by buildx to the image itself remain.
+      - uses: actions/attest-build-provenance@v2
+        if: ${{ !github.event.repository.private }}
+        with:
+          subject-name: ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+  release:
+    name: GitHub Release
+    needs: [notes, images]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.notes.outputs.version }}
+        run: |
+          {
+            cat release-notes.md
+            echo
+            echo "### Images"
+            for name in control gateway console sim; do
+              echo "- \`${IMAGE_PREFIX}-${name}:${VERSION}\`"
+            done
+            echo
+            echo "Deploy: \`SIBYL_IMAGE_TAG=${VERSION} make up\` (docs/setup/SETUP.md)."
+          } > notes.md
+          prerelease=()
+          [[ "$VERSION" != *-* ]] || prerelease=(--prerelease)
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --title "Sibyl $VERSION" --notes-file notes.md --verify-tag "${prerelease[@]}"

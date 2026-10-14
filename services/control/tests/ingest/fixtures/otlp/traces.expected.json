@@ -1,0 +1,117 @@
+[
+ {
+  "resource": {
+   "service.name": "quote-worker",
+   "sibyl.env": "live"
+  },
+  "schema_url": "https://opentelemetry.io/schemas/1.37.0",
+  "scopes": [
+   {
+    "name": "sibyl-sdk",
+    "version": "0.1.0",
+    "attributes": {
+     "sibyl.schema.version": "1"
+    },
+    "schema_url": "https://opentelemetry.io/schemas/1.37.0",
+    "spans": [
+     {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "00f067aa0ba902b7",
+      "parent_span_id": "53995c3f42cd8ad8",
+      "name": "chat gpt-5-mini",
+      "kind": 3,
+      "start_ns": 1791640000000000000,
+      "end_ns": 1791640001843200000,
+      "attributes": {
+       "gen_ai.operation.name": "chat",
+       "gen_ai.provider.name": "openai",
+       "gen_ai.request.model": "gpt-5-mini",
+       "gen_ai.response.model": "gpt-5-mini-2026-08-01",
+       "gen_ai.usage.input_tokens": 2310,
+       "gen_ai.usage.output_tokens": 418,
+       "gen_ai.request.temperature": {
+        "double": 0.2
+       },
+       "gen_ai.response.finish_reasons": {
+        "array": [
+         "tool_calls"
+        ]
+       },
+       "sibyl.streamed": true,
+       "sibyl.seq": -7,
+       "big": 9007199254740993,
+       "nested": {
+        "kvlist": {
+         "a": {
+          "array": [
+           1,
+           "x",
+           {
+            "kvlist": {
+             "b": false
+            }
+           }
+          ]
+         }
+        }
+       },
+       "blob": {
+        "bytes": "0001ff"
+       },
+       "unicode": "naïve ✓ 𝄞",
+       "gen_ai.input.messages": "[{\"role\": \"user\", \"content\": \"Draft a quote\"}]"
+      },
+      "status_code": 2,
+      "status_message": "upstream 429",
+      "events": [
+       {
+        "name": "retry",
+        "time_ns": 1791640000000000005,
+        "attributes": {
+         "attempt": 2
+        }
+       }
+      ]
+     },
+     {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "1111111111111111",
+      "parent_span_id": "",
+      "name": "execute_tool lookup_order",
+      "kind": 1,
+      "start_ns": 1791640000000000000,
+      "end_ns": 1791640000002000000,
+      "attributes": {
+       "gen_ai.operation.name": "execute_tool",
+       "gen_ai.tool.name": "lookup_order"
+      },
+      "status_code": 0,
+      "status_message": "",
+      "events": []
+     }
+    ]
+   },
+   {
+    "name": "",
+    "version": "",
+    "attributes": {},
+    "schema_url": "",
+    "spans": [
+     {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "2222222222222222",
+      "parent_span_id": "",
+      "name": "GET /",
+      "kind": 0,
+      "start_ns": 1,
+      "end_ns": 2,
+      "attributes": {},
+      "status_code": 0,
+      "status_message": "",
+      "events": []
+     }
+    ]
+   }
+  ]
+ }
+]

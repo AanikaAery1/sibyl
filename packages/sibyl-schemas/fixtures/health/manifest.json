@@ -1,0 +1,123 @@
+{
+  "area": "health",
+  "cases": [
+    {
+      "file": "valid/health_degraded.json",
+      "schema": "sibyl-health/1",
+      "valid": true
+    },
+    {
+      "file": "valid/health_provisional.json",
+      "schema": "sibyl-health/1",
+      "valid": true
+    },
+    {
+      "file": "invalid/health_bad_probability_band.json",
+      "schema": "sibyl-health/1",
+      "valid": false,
+      "error_pointer": "/horizons/15m/probability_band",
+      "why": "probability bands are 0.05/0.25/0.60/0.90"
+    },
+    {
+      "file": "invalid/health_weight_above_one.json",
+      "schema": "sibyl-health/1",
+      "valid": false,
+      "error_pointer": "/factors/0/weight",
+      "why": "weight = cap/100 <= 1"
+    },
+    {
+      "file": "invalid/health_unknown_status.json",
+      "schema": "sibyl-health/1",
+      "valid": false,
+      "error_pointer": "/status",
+      "why": "band value set"
+    },
+    {
+      "file": "invalid/health_missing_24h_horizon.json",
+      "schema": "sibyl-health/1",
+      "valid": false,
+      "error_pointer": "/horizons",
+      "why": "all three horizons required"
+    },
+    {
+      "file": "invalid/health_bad_source.json",
+      "schema": "sibyl-health/1",
+      "valid": false,
+      "error_pointer": "/horizons/1h/source",
+      "why": "source is rules/vN or model/<name>:<ver>"
+    },
+    {
+      "file": "invalid/health_unknown_routing_state.json",
+      "schema": "sibyl-health/1",
+      "valid": false,
+      "error_pointer": "/routing_state",
+      "why": "routing_state value set"
+    },
+    {
+      "file": "invalid/health_rule_id_uppercase.json",
+      "schema": "sibyl-health/1",
+      "valid": false,
+      "error_pointer": "/factors/0/rule",
+      "why": "rule ids are snake_case names, not short codes"
+    },
+    {
+      "file": "valid/feature_snapshot.json",
+      "schema": "sibyl-feature-snapshot/1",
+      "valid": true
+    },
+    {
+      "file": "invalid/feature_key_not_snake_case.json",
+      "schema": "sibyl-feature-snapshot/1",
+      "valid": false,
+      "error_pointer": "/grains/1m",
+      "why": "feature keys are ^[a-z][a-z0-9_]{1,60}$"
+    },
+    {
+      "file": "invalid/feature_value_string.json",
+      "schema": "sibyl-feature-snapshot/1",
+      "valid": false,
+      "error_pointer": "/grains/1m/request_count",
+      "why": "feature values are number|null"
+    },
+    {
+      "file": "invalid/missing_1h_grain.json",
+      "schema": "sibyl-feature-snapshot/1",
+      "valid": false,
+      "error_pointer": "/grains",
+      "why": "all four grains required"
+    },
+    {
+      "file": "invalid/bad_feature_set.json",
+      "schema": "sibyl-feature-snapshot/1",
+      "valid": false,
+      "error_pointer": "/feature_set",
+      "why": "feature_set is features/vN"
+    },
+    {
+      "file": "invalid/hour_out_of_range.json",
+      "schema": "sibyl-feature-snapshot/1",
+      "valid": false,
+      "error_pointer": "/static/hour_of_day_utc",
+      "why": "0..23"
+    },
+    {
+      "file": "valid/label_alert_verdict.json",
+      "schema": "sibyl-label/1",
+      "valid": true
+    },
+    {
+      "file": "invalid/label_bad_verdict.json",
+      "schema": "sibyl-label/1",
+      "valid": false,
+      "error_pointer": "/value/verdict",
+      "why": "verdict is tp/fp/unsure"
+    },
+    {
+      "file": "invalid/label_unknown_kind.json",
+      "schema": "sibyl-label/1",
+      "valid": false,
+      "error_pointer": "/kind",
+      "why": "label kind value set"
+    }
+  ]
+}

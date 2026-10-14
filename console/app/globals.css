@@ -1,0 +1,19 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+@import "../styles/base.css";
+@import "../styles/components.css";
+@import "../styles/glass.css";
+@import "../styles/viz.css";
+@import "../styles/auth.css";
+@import "../styles/actions.css";
+@import "../styles/monitor.css";
+
+/* Tailwind is used for layout utilities only; colors come from the semantic tokens.
+   @theme values are literals (no var() self-references). */
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  --breakpoint-sm: 680px;
+  --breakpoint-md: 900px;
+  --breakpoint-lg: 1180px;
+}

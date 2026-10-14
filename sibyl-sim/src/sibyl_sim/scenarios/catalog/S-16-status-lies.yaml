@@ -1,0 +1,23 @@
+# S-16 Status page lies (ML §8.2): the status feed says major_outage while traffic is healthy.
+# R4 fires (provider scope) and may cost points, but status alone must not fail anyone over;
+# the design expects the band to stop at `watch`.
+id: S-16
+title: Status page lies (false outage), tier 2
+gate_class: none
+duration_s: 240
+tenants:
+  meridian:
+    agents:
+      support-triage: busy   # tier 2, openai-stub
+chaos:
+  - {at: 20, status: openai, set: {mode: lies, lie_status: major_outage}}
+labels: []
+expect:
+  - detect: {provider: openai-stub, rule: R4, by_t: 120}
+  - no_alert: {agent: support-triage, rule: [R1, R3]}
+  - health: {agent: support-triage, status: [healthy, watch]}
+    note: "status-only evidence: penalty applied, band watch at worst (ML §8.2 S-16)"
+  - explainable: {}
+  - isolated: {tenant: meridian}
+  - quiet: {tenant: northstar, scope: agent}
+  - no_action: {agent: support-triage}

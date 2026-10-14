@@ -1,0 +1,10 @@
+node_modules
+.next
+test-results
+playwright-report
+blob-report
+docs/screenshots
+tests/visual/__screenshots__
+*.tsbuildinfo
+.env*.local
+.npmrc

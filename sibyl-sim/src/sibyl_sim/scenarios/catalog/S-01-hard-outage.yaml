@@ -1,0 +1,61 @@
+# S-01 Hard provider outage (ML §8.2; ROADMAP M1 1.6 detection half, M2 2.1 action half)
+id: S-01
+title: Hard provider outage, openai-stub, all meridian credentials
+smoke: true
+gate_class: hard
+duration_s: 200
+notes: >
+  The outage is scoped to meridian's credentials (an account-level outage), so northstar's
+  openai-stub agents keep working and isolation can be asserted in the same run. The status
+  page flips at +90 s (R4); the page is shared, so provider-scope R4 in northstar is expected
+  and only agent-scope noise there is a failure.
+tenants:
+  meridian:
+    default_profile: steady
+    agents:
+      dispatch-planner: busy   # tier 1
+      support-triage: busy     # tier 2
+      kb-summarizer: busy      # tier 3
+  northstar:
+    default_profile: steady
+chaos:
+  - {at: 30, double: openai-stub, tenants: [meridian], set: {outage: true}}
+  - at: 120
+    status: openai
+    set:
+      incidents: [{status: major_outage, start_s: 0, name: "Elevated 503 errors on the API"}]
+labels:
+  - {agent: dispatch-planner, kind: onset, t: 30, failure_mode: provider_outage}
+  - {agent: support-triage, kind: onset, t: 30, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: kb-summarizer, kind: onset, t: 30, failure_mode: provider_outage}
+  - {agent: billing-agent, kind: onset, t: 30, failure_mode: provider_outage}
+  - {agent: quote-assistant, kind: onset, t: 30, failure_mode: provider_outage}
+  - {agent: escalation-router, kind: onset, t: 30, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: route-optimizer, kind: onset, t: 30, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: receipt-ocr, kind: onset, t: 30, failure_mode: provider_outage}
+  - {agent: shift-scheduler, kind: onset, t: 30, failure_mode: provider_outage}
+expect:
+  # detection half (wave 1: health engine, alerts over SSE)
+  - detect: {agent: dispatch-planner, rule: [R3, R1], by_t: 90}
+  - health: {agent: support-triage, status: [failed], when: ever}
+    note: "B35: masked by inline fallback, no failed call of its own; R4 (status page at +120 s) attributes the outage to the primary and the band reaches failed"
+  - detect: {agent: kb-summarizer, rule: [R3, R1], by_t: 150}
+  - detect: {agent: kb-summarizer, rule: R1, by_t: 200}
+  - health: {agent: dispatch-planner, status: [failed], when: ever}
+  - provider_incident: {provider: openai-stub, min_agents: 2, by_t: 200}
+  - detect: {provider: openai-stub, rule: R4, by_t: 200}
+  - recommended_action: {agent: support-triage, action: reroute_to_fallback}
+  - gateway_route: {agent: support-triage, route: inline_fallback, min_count: 1}
+    note: "L5: tier 2 inline fallback to the vaulted ollama-stub step"
+  - explainable: {}
+  - isolated: {tenant: meridian}
+  - isolated: {tenant: northstar}
+  - observed: {tenant: northstar}
+  - quiet: {tenant: northstar, scope: agent}
+  # action half (wave 2: saga)
+  - action: {agent: dispatch-planner, to_state: failed_over, actor: rule, by_t: 200}
+  - no_action: {agent: support-triage, states: [failed_over]}
+    note: "B35: no saga is started for an outage the inline fallback fully masks"
+  - action: {agent: kb-summarizer, to_state: failed_over, actor: rule, by_t: 200}
+  - tier_gate: {agent: dispatch-planner, mode: automatic}
+  - audit_has: {verbs: [alert.fired, failover.completed]}

@@ -1,0 +1,37 @@
+# Use the released images from GHCR instead of building them (production / quick start).
+#
+#   SIBYL_IMAGE_TAG=1.0.0 make up            # real.sh adds this file when SIBYL_IMAGE_TAG is set
+#
+# By hand: add `-f docker-compose.images.yml` after the other compose files and run
+# `docker compose ... pull` before `up`. Images are published by .github/workflows/release.yml
+# on every `v*` tag (multi-arch linux/amd64 + linux/arm64, with SBOM and provenance):
+#   ghcr.io/mk-jkc/sibyl-control   api, ingest, worker, migrate, bootstrap (one image)
+#   ghcr.io/mk-jkc/sibyl-gateway
+#   ghcr.io/mk-jkc/sibyl-console
+#   ghcr.io/mk-jkc/sibyl-sim       development simulator (demo stack only)
+# The repository is private, so pulling needs `docker login ghcr.io` with a token that has
+# read:packages. Pin a release tag (or a digest: SIBYL_IMAGE_TAG=1.0.0@sha256:...), never latest.
+#
+# Requires Docker Compose >= 2.24.4 (the !reset tag).
+
+services:
+  api:
+    image: ${SIBYL_IMAGE_REGISTRY:-ghcr.io/mk-jkc}/sibyl-control:${SIBYL_IMAGE_TAG:?set SIBYL_IMAGE_TAG, e.g. 1.0.0}
+    build: !reset null
+  ingest:
+    image: ${SIBYL_IMAGE_REGISTRY:-ghcr.io/mk-jkc}/sibyl-control:${SIBYL_IMAGE_TAG:?set SIBYL_IMAGE_TAG}
+  worker:
+    image: ${SIBYL_IMAGE_REGISTRY:-ghcr.io/mk-jkc}/sibyl-control:${SIBYL_IMAGE_TAG:?set SIBYL_IMAGE_TAG}
+  migrate:
+    image: ${SIBYL_IMAGE_REGISTRY:-ghcr.io/mk-jkc}/sibyl-control:${SIBYL_IMAGE_TAG:?set SIBYL_IMAGE_TAG}
+  bootstrap:
+    image: ${SIBYL_IMAGE_REGISTRY:-ghcr.io/mk-jkc}/sibyl-control:${SIBYL_IMAGE_TAG:?set SIBYL_IMAGE_TAG}
+  gateway:
+    image: ${SIBYL_IMAGE_REGISTRY:-ghcr.io/mk-jkc}/sibyl-gateway:${SIBYL_IMAGE_TAG:?set SIBYL_IMAGE_TAG}
+    build: !reset null
+  console:
+    image: ${SIBYL_IMAGE_REGISTRY:-ghcr.io/mk-jkc}/sibyl-console:${SIBYL_IMAGE_TAG:?set SIBYL_IMAGE_TAG}
+    build: !reset null
+  sibyl-sim:
+    image: ${SIBYL_IMAGE_REGISTRY:-ghcr.io/mk-jkc}/sibyl-sim:${SIBYL_IMAGE_TAG:?set SIBYL_IMAGE_TAG}
+    build: !reset null

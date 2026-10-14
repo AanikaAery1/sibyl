@@ -1,0 +1,29 @@
+# S-09 Silent degradation: truncation (ML §8.2; R7). finish_reason=length on 50 %, output
+# chars at 30 % of normal. Smoke: the PR suite's silent-degradation representative.
+id: S-09
+title: Silent degradation, truncation, tier 3
+smoke: true
+gate_class: silent
+duration_s: 180
+tenants:
+  meridian:
+    agents:
+      kb-summarizer: busy   # tier 3, openai-stub
+chaos:
+  - at: 30
+    double: openai-stub
+    agents: [kb-summarizer]
+    set: {truncation_rate: 0.5, truncation_fraction: 0.3}
+labels:
+  - {agent: kb-summarizer, kind: onset, t: 30, failure_mode: quality_collapse}
+expect:
+  - detect: {agent: kb-summarizer, rule: R7, by_t: 180}
+  - no_alert: {agent: kb-summarizer, rule: [R1, R3]}
+  - recommended_action: {agent: kb-summarizer, action: watch}
+    note: >
+      qa-expert S-09 says trim_context; consolidated ML §3.6 maps a dominant quality_proxy
+      to `watch` on tiers 2-3 (trim_context is context_saturation's). ML.md wins.
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}
+  - no_action: {agent: kb-summarizer}

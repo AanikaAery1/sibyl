@@ -1,0 +1,71 @@
+{
+  "area": "checkpoint",
+  "cases": [
+    {
+      "file": "valid/checkpoint_inline_state.json",
+      "schema": "sibyl-checkpoint/1",
+      "valid": true
+    },
+    {
+      "file": "valid/checkpoint_state_ref.json",
+      "schema": "sibyl-checkpoint/1",
+      "valid": true
+    },
+    {
+      "file": "invalid/large_state_inline.json",
+      "schema": "sibyl-checkpoint/1",
+      "valid": false,
+      "error_pointer": "",
+      "why": "state_bytes > 65536 must use state_ref, never inline state"
+    },
+    {
+      "file": "invalid/large_state_missing_ref.json",
+      "schema": "sibyl-checkpoint/1",
+      "valid": false,
+      "error_pointer": "",
+      "why": "state_bytes > 65536 requires state_ref"
+    },
+    {
+      "file": "invalid/small_state_missing.json",
+      "schema": "sibyl-checkpoint/1",
+      "valid": false,
+      "error_pointer": "",
+      "why": "state_bytes <= 65536 requires inline state"
+    },
+    {
+      "file": "invalid/seq_zero.json",
+      "schema": "sibyl-checkpoint/1",
+      "valid": false,
+      "error_pointer": "/seq",
+      "why": "seq starts at 1"
+    },
+    {
+      "file": "invalid/side_effect_unknown_kind.json",
+      "schema": "sibyl-checkpoint/1",
+      "valid": false,
+      "error_pointer": "/side_effects/0/kind",
+      "why": "side-effect kind value set"
+    },
+    {
+      "file": "invalid/legacy_schema_name.json",
+      "schema": "sibyl-checkpoint/1",
+      "valid": false,
+      "error_pointer": "/schema",
+      "why": "D19 rename"
+    },
+    {
+      "file": "invalid/completed_step_missing_assumed.json",
+      "schema": "sibyl-checkpoint/1",
+      "valid": false,
+      "error_pointer": "/completed_steps/0",
+      "why": "assumed is required"
+    },
+    {
+      "file": "invalid/preview_too_long.json",
+      "schema": "sibyl-checkpoint/1",
+      "valid": false,
+      "error_pointer": "/completed_steps/0/output/preview",
+      "why": "previews are <= 4 KiB"
+    }
+  ]
+}

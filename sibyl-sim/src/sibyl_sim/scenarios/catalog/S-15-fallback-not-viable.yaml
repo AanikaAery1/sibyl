@@ -1,0 +1,35 @@
+# S-15 Fallback target not viable (ML §8.2; R55): S-01's outage, but the alt-provider step's
+# vaulted credential is revoked first. The saga ends `failed` with target_not_viable and a
+# handoff as the terminal step, audited.
+# Seeded chains put alt_model_same_provider first (it would be taken and the revoked step never
+# reached), so the scenario installs an alt-provider-first chain through the policy api.
+id: S-15
+title: Fallback not viable (revoked vaulted credential), tier 2
+requires: [S]
+gate_class: hard
+duration_s: 240
+tenants:
+  meridian:
+    agents:
+      support-triage: busy   # tier 2, openai-stub
+chaos:
+  - {at: 30, double: openai-stub, agents: [support-triage], set: {outage: true}}
+labels:
+  - {agent: support-triage, kind: onset, t: 30, failure_mode: provider_outage}
+expect:
+  - detect: {agent: support-triage, rule: [R3, R1], by_t: 120}
+  - handoff: {agent: support-triage}
+  - rto: {agent: support-triage, rto_s: 3600}
+  - audit_has: {verbs: [failover.started, handoff.created]}
+  - explainable: {}
+  - quiet: {tenant: northstar, scope: agent}
+personas:
+  - at: 2
+    persona: admin
+    do: draft_chain
+    agent: support-triage
+    steps:
+      - {kind: alt_provider, risk: medium, provider: ollama-stub, model: llama-4-70b, credential: active}
+      - {kind: human_queue, risk: high}
+  - {at: 5, persona: operator, do: approve_chain, agent: support-triage}
+  - {at: 15, persona: admin, do: revoke_credential, provider: ollama-stub}

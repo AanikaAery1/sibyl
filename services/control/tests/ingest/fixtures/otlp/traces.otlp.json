@@ -1,0 +1,231 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "quote-worker"
+            }
+          },
+          {
+            "key": "sibyl.env",
+            "value": {
+              "stringValue": "live"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "sibyl-sdk",
+            "version": "0.1.0",
+            "attributes": [
+              {
+                "key": "sibyl.schema.version",
+                "value": {
+                  "stringValue": "1"
+                }
+              }
+            ]
+          },
+          "spans": [
+            {
+              "traceId": "S/kvNXezTaajzpKdDg5HNg==",
+              "spanId": "APBnqgupArc=",
+              "parentSpanId": "U5lcP0LNitg=",
+              "name": "chat gpt-5-mini",
+              "kind": "SPAN_KIND_CLIENT",
+              "startTimeUnixNano": "1791640000000000000",
+              "endTimeUnixNano": "1791640001843200000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.provider.name",
+                  "value": {
+                    "stringValue": "openai"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "gpt-5-mini"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.model",
+                  "value": {
+                    "stringValue": "gpt-5-mini-2026-08-01"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "2310"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "418"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.temperature",
+                  "value": {
+                    "doubleValue": 0.2
+                  }
+                },
+                {
+                  "key": "gen_ai.response.finish_reasons",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "tool_calls"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "sibyl.streamed",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "sibyl.seq",
+                  "value": {
+                    "intValue": "-7"
+                  }
+                },
+                {
+                  "key": "big",
+                  "value": {
+                    "intValue": "9007199254740993"
+                  }
+                },
+                {
+                  "key": "nested",
+                  "value": {
+                    "kvlistValue": {
+                      "values": [
+                        {
+                          "key": "a",
+                          "value": {
+                            "arrayValue": {
+                              "values": [
+                                {
+                                  "intValue": "1"
+                                },
+                                {
+                                  "stringValue": "x"
+                                },
+                                {
+                                  "kvlistValue": {
+                                    "values": [
+                                      {
+                                        "key": "b",
+                                        "value": {
+                                          "boolValue": false
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "blob",
+                  "value": {
+                    "bytesValue": "AAH/"
+                  }
+                },
+                {
+                  "key": "unicode",
+                  "value": {
+                    "stringValue": "na\u00efve \u2713 \ud834\udd1e"
+                  }
+                },
+                {
+                  "key": "gen_ai.input.messages",
+                  "value": {
+                    "stringValue": "[{\"role\": \"user\", \"content\": \"Draft a quote\"}]"
+                  }
+                }
+              ],
+              "events": [
+                {
+                  "timeUnixNano": "1791640000000000005",
+                  "name": "retry",
+                  "attributes": [
+                    {
+                      "key": "attempt",
+                      "value": {
+                        "intValue": "2"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "status": {
+                "message": "upstream 429",
+                "code": "STATUS_CODE_ERROR"
+              },
+              "flags": 257
+            },
+            {
+              "traceId": "S/kvNXezTaajzpKdDg5HNg==",
+              "spanId": "ERERERERERE=",
+              "name": "execute_tool lookup_order",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1791640000000000000",
+              "endTimeUnixNano": "1791640000002000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "lookup_order"
+                  }
+                }
+              ]
+            }
+          ],
+          "schemaUrl": "https://opentelemetry.io/schemas/1.37.0"
+        },
+        {
+          "spans": [
+            {
+              "traceId": "S/kvNXezTaajzpKdDg5HNg==",
+              "spanId": "IiIiIiIiIiI=",
+              "name": "GET /",
+              "startTimeUnixNano": "1",
+              "endTimeUnixNano": "2"
+            }
+          ]
+        }
+      ],
+      "schemaUrl": "https://opentelemetry.io/schemas/1.37.0"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "schema": "sibyl-handoff/1",
+  "packet_id": "019276a4-0000-7000-8000-000000000101",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "agent_name": "quote-assistant",
+  "task_id": "019276a0-9c1d-7e3f-9a52-1b2c3d4e5f60",
+  "created_at": "2026-10-09T09:16:02.000Z",
+  "fidelity": "request_only",
+  "goal": "Quote order A-88213",
+  "original_input": {
+    "preview": "Customer: Meridian Logistics. Request: quote for 40 pallets"
+  },
+  "completed_steps": [],
+  "pending_steps": [],
+  "reason": {
+    "plain_language": "Provider call failed while drafting the quote: upstream timeout after 60 s",
+    "failure_mode": "provider_outage",
+    "trigger": {
+      "kind": "rule"
+    }
+  },
+  "next_action": "Review the order and send the quote manually.",
+  "deadline": {
+    "at": "2026-10-09T09:16:02.000Z",
+    "derived_from": "tier_rto"
+  },
+  "accountability": {
+    "owner": "pending",
+    "line": "Filled by the control plane from the registry"
+  },
+  "redaction": {
+    "capture_mode": "full",
+    "profile": {
+      "id": "secrets_only",
+      "version": 1,
+      "rules_fired": [],
+      "secrets_scrubbed": 0
+    }
+  },
+  "provenance": {
+    "assembled_by": "sdk",
+    "sdk_version": "0.1.0",
+    "policy_version": 42,
+    "trace_ids": [
+      "4bf92f3577b34da6a3ce929d0e0e4736"
+    ]
+  }
+}

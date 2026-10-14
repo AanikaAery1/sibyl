@@ -1,0 +1,17 @@
+# S-12 Context saturation (ML §8.2): moved to Phase 1.5 with prediction depth B1
+# (ROADMAP §3.4). Kept in the catalogue so the coverage matrix stays complete.
+id: S-12
+title: Context saturation (Phase 1.5)
+phase: "1.5"
+requires: [P]
+duration_s: 900
+tenants:
+  meridian:
+    agents:
+      support-triage: sdk_steady
+labels:
+  - {agent: support-triage, kind: onset, t: 600, failure_mode: context_saturation}
+expect:
+  - predict: {agent: support-triage, rule: context_saturation, by_t: 600}
+  - recommended_action: {agent: support-triage, action: trim_context}
+  - no_action: {agent: support-triage}

@@ -1,0 +1,44 @@
+{
+  "schema": "sibyl-health/1",
+  "health_snapshot_id": "019276a2-7f00-7000-8000-000000000043",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c011",
+  "computed_at": "2026-10-09T09:15:50.000Z",
+  "window": {
+    "start": "2026-10-09T09:10:50.000Z",
+    "end": "2026-10-09T09:15:50.000Z",
+    "grain_s": 300
+  },
+  "score": 96,
+  "status": "healthy",
+  "provisional": {
+    "flag": true,
+    "events_seen": 12,
+    "events_needed": 50,
+    "observation_coverage": 0.62
+  },
+  "factors": [],
+  "horizons": {
+    "15m": {
+      "probability_band": "0.05",
+      "source": "rules/v1",
+      "confidence": "low",
+      "predicted_failure_mode": null
+    },
+    "1h": {
+      "probability_band": "0.05",
+      "source": "rules/v1",
+      "confidence": "low"
+    },
+    "24h": {
+      "probability_band": "0.05",
+      "source": "rules/v1",
+      "confidence": "low"
+    }
+  },
+  "predicted_failure_mode": null,
+  "recommended_action": null,
+  "feature_snapshot_ref": "fs_019276a2-7e00-7000-8000-000000000043",
+  "policy_version": 42,
+  "routing_state": "active"
+}

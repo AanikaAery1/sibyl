@@ -1,0 +1,136 @@
+{
+  "area": "snapshot",
+  "cases": [
+    {
+      "file": "valid/snapshot_body.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": true
+    },
+    {
+      "file": "valid/snapshot_envelope.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": true,
+      "pointer": "/$defs/envelope"
+    },
+    {
+      "file": "valid/key_set.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": true,
+      "pointer": "/$defs/key_set"
+    },
+    {
+      "file": "invalid/snapshot_missing_kill_switches.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/tenants/0192767f-0000-7000-8000-00000000a001",
+      "why": "kill set is always present (may be empty)"
+    },
+    {
+      "file": "invalid/snapshot_human_scope_on_key.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/tenants/0192767f-0000-7000-8000-00000000a001/api_keys/Qx7Lm2Np9Rt4/scopes/0",
+      "why": "only machine scopes on keys"
+    },
+    {
+      "file": "invalid/snapshot_sdk_route_state.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/tenants/0192767f-0000-7000-8000-00000000a001/agents/0192767f-0000-7000-8000-00000000c010/route/state",
+      "why": "seven routing states only"
+    },
+    {
+      "file": "invalid/snapshot_canary_150.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/tenants/0192767f-0000-7000-8000-00000000a001/agents/0192767f-0000-7000-8000-00000000c010/route/canary_pct",
+      "why": "canary_pct 0..100"
+    },
+    {
+      "file": "invalid/snapshot_money_as_float.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/tenants/0192767f-0000-7000-8000-00000000a001/agents/0192767f-0000-7000-8000-00000000c010/limits/budget_usd_month",
+      "why": "money is a decimal string"
+    },
+    {
+      "file": "invalid/snapshot_credential_secret_inline.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/tenants/0192767f-0000-7000-8000-00000000a001/agents/0192767f-0000-7000-8000-00000000c010/fallback_chain",
+      "why": "credentials are never in the snapshot (oneOf chain|null fails)"
+    },
+    {
+      "file": "invalid/snapshot_bad_tenant_key.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/tenants",
+      "why": "tenant keys are uuids"
+    },
+    {
+      "file": "invalid/snapshot_version_zero.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/version",
+      "why": "version >= 1"
+    },
+    {
+      "file": "invalid/envelope_bad_alg.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "pointer": "/$defs/envelope",
+      "error_pointer": "/alg",
+      "why": "Ed25519 only"
+    },
+    {
+      "file": "invalid/envelope_short_sig.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "pointer": "/$defs/envelope",
+      "error_pointer": "/sig",
+      "why": "64-byte signature, base64url"
+    },
+    {
+      "file": "invalid/key_set_unsigned_legacy.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "pointer": "/$defs/key_set",
+      "error_pointer": "",
+      "why": "key sets are signed: the 1.0 unsigned {keys, next_key} shape is refused (security M6)"
+    },
+    {
+      "file": "invalid/key_set_next_key_outside_signature.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "pointer": "/$defs/key_set",
+      "error_pointer": "",
+      "why": "next_key travels inside the signed body only"
+    },
+    {
+      "file": "invalid/snapshot_http_base_url.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/tenants/0192767f-0000-7000-8000-00000000a001/providers/0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a13/base_url",
+      "why": "upstream base_url is https only; dev doubles go through the DB base_url_dev_host allowlist, never the schema"
+    },
+    {
+      "file": "valid/snapshot_body_action_policies.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": true
+    },
+    {
+      "file": "invalid/snapshot_action_policy_ref_not_uuid.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/tenants/0192767f-0000-7000-8000-00000000a001/agents/0192767f-0000-7000-8000-00000000c011/action_policies/0",
+      "why": "agents reference tenant action policies by policy_id"
+    },
+    {
+      "file": "invalid/snapshot_action_policy_code_string.json",
+      "schema": "sibyl.policy_snapshot/1",
+      "valid": false,
+      "error_pointer": "/tenants/0192767f-0000-7000-8000-00000000a001/action_policies/0192767f-0000-7000-8000-0000000ac001/rules/0/when",
+      "why": "a predicate is a JSON AST, never code"
+    }
+  ]
+}

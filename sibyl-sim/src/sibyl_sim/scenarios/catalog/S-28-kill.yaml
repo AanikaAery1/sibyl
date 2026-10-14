@@ -1,0 +1,33 @@
+# S-28 Kill beats everything (ML §8.2; ROADMAP M2 2.7; D20): during S-01 the Operator pulls the agent
+# kill switch. The gateway refuses on its next snapshot (403 sibyl_agent_killed), the SDK raises
+# SibylKilled within 20 s, no saga progresses; release needs a step-up.
+id: S-28
+title: Kill switch during an outage, honoured by the gateway's snapshot and the SDK
+requires: [S]
+gate_class: hard
+duration_s: 240
+# B35: tier 2 inline-falls back to its vaulted alt provider, which fully masks the outage (no
+# alert before the kill, no saga for the kill to beat); the gateway agent opts out per request
+# (X-Sibyl-Fallback: none). The SDK agent calls its double directly and is never masked.
+profiles:
+  busy_no_inline: {rps: 0.5, fallback: none}
+tenants:
+  meridian:
+    agents:
+      support-triage: busy_no_inline         # tier 2, through the gateway
+      escalation-router: sdk_steady   # tier 2, SDK (SibylKilled)
+chaos:
+  - {at: 30, double: openai-stub, agents: [support-triage, escalation-router], set: {outage: true}}
+labels:
+  - {agent: support-triage, kind: onset, t: 30, failure_mode: provider_outage}
+  - {agent: escalation-router, kind: onset, t: 30, failure_mode: provider_outage}
+expect:
+  - gateway_refused: {agent: support-triage, code: sibyl_agent_killed, after_t: 90, within_s: 20}
+  - action: {agent: support-triage, to_state: killed, by_t: 120}
+  - no_action: {agent: support-triage, states: [failed_over, failing_back, active], from_t: 95}
+    note: "no saga progresses once killed"
+  - audit_has: {verbs: [killswitch.pulled, killswitch.released]}
+personas:
+  - {at: 90, persona: operator, do: pull_kill, agent: support-triage}
+  - {at: 91, persona: operator, do: pull_kill, agent: escalation-router}
+  - {at: 200, persona: admin, do: release_kill, stepped_up: true}

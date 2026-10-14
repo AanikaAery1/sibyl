@@ -1,0 +1,37 @@
+# S-26 Approval four-eyes (ML §8.2; ROADMAP M2 2.6; D13, R36; CRITICAL approval gating): a
+# tier-1 agent whose next step is a backup agent waits for approval even on a detected failure;
+# a requester cannot approve their own request.
+# The seeded world has no tier-1 agent whose chain starts with a backup agent, so one is
+# installed through the policy api (the Admin drafts, the Operator approves).
+id: S-26
+title: Four-eyes on a tier-1 backup-agent step
+requires: [S]
+gate_class: hard
+duration_s: 300
+tenants:
+  meridian:
+    agents:
+      refund-agent: busy   # tier 1, anthropic-stub
+chaos:
+  - {at: 30, double: anthropic-stub, agents: [refund-agent], set: {outage: true}}
+labels:
+  - {agent: refund-agent, kind: onset, t: 30, failure_mode: provider_outage}
+expect:
+  - detect: {agent: refund-agent, rule: [R3, R1], by_t: 90}
+  - tier_gate: {agent: refund-agent, mode: approval}
+  - audit_has: {verbs: [approval.requested, approval.denied, approval.granted]}
+personas:
+  - at: 2
+    persona: admin
+    do: draft_chain
+    agent: refund-agent
+    steps:
+      - {kind: backup_agent, risk: medium, backup_agent: returns-agent}
+      - {kind: human_queue, risk: high}
+  - {at: 5, persona: operator, do: approve_chain, agent: refund-agent}
+  # the rule-requested approval: the Operator denies it (denied -> degraded)
+  - {at: 120, persona: operator, do: deny, agent: refund-agent}
+  # an operator request by the Admin: she may not approve it herself, the Operator may
+  - {at: 180, persona: admin, do: open_incident, agent: refund-agent, action: failover}
+  - {at: 200, persona: admin, do: self_approve, agent: refund-agent, expect_status: 409}
+  - {at: 220, persona: operator, do: approve, agent: refund-agent}

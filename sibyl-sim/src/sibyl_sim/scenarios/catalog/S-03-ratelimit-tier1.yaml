@@ -1,0 +1,34 @@
+# S-03 Rate-limit ramp, tier 1 (ML §8.2; ROADMAP M3 3.2): the same ramp on a tier-1 agent must
+# ask before it acts: awaiting_approval requested by a rule, timeout 600 s -> hold -> degraded.
+id: S-03
+title: Rate-limit ramp, tier 1 asks for approval
+requires: [P, S]
+gate_class: ramp
+duration_s: 1500
+health_poll_s: 30
+tenants:
+  meridian:
+    agents:
+      refund-agent: busy   # tier 1, anthropic-stub
+chaos:
+  - {at: 0, double: anthropic-stub, set: {ramp: {start_headroom: 0.6, end_headroom: 0.02, ramp_s: 720, then_429: true}}}
+labels:
+  - {agent: refund-agent, kind: precursor, t: 300, failure_mode: provider_outage}
+  - {agent: refund-agent, kind: onset, t: 720, failure_mode: provider_outage}
+  # the ramp is double-wide: every meridian agent on anthropic-stub shares the account's headroom
+  - {agent: collections-bot, kind: onset, t: 720, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: returns-agent, kind: onset, t: 720, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: driver-assistant, kind: onset, t: 720, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: email-drafter, kind: onset, t: 720, failure_mode: provider_outage}
+  - {agent: fuel-analyst, kind: onset, t: 720, failure_mode: provider_outage}
+expect:
+  - predict: {agent: refund-agent, rule: L3, by_t: 360}
+  - tier_gate: {agent: refund-agent, mode: approval}
+  - no_action: {agent: refund-agent, states: [failed_over]}
+    note: "no routing change until the Operator decides; the timeout path ends in hold -> degraded"
+  - action: {agent: refund-agent, to_state: degraded, by_t: 1500}
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - audit_has: {verbs: [approval.requested]}
+personas:
+  - {at: end, persona: auditor, do: audit_check}

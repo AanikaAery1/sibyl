@@ -1,0 +1,38 @@
+{
+  "schema": "sibyl-event/1",
+  "event_id": "019276a3-0006-7000-8000-000000000006",
+  "type": "handoff.completed",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "task_id": "019276a0-9c1d-7e3f-9a52-1b2c3d4e5f60",
+  "call_id": null,
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "7a1b2c3d4e5f6072",
+  "ts": "2026-10-09T09:14:35.001Z",
+  "observed_at": "2026-10-09T09:14:36.420Z",
+  "source": "api",
+  "emitter_id": "api:api-1:301",
+  "seq": 1043,
+  "capture_mode": "full",
+  "redaction_profile": {
+    "id": "secrets_only",
+    "version": 1,
+    "rules_fired": [],
+    "secrets_scrubbed": 0
+  },
+  "policy_state": {
+    "state": "fresh",
+    "policy_version": 42,
+    "fail_mode": "open"
+  },
+  "attrs": {
+    "packet_id": "019276a3-1d5e-7f60-8b72-3c4d5e6f7081",
+    "outcome": "completed",
+    "operator_ref": "0192767f-0000-7000-8000-00000000f002",
+    "claimed_at": "2026-10-09T09:20:00.000Z",
+    "resolved_at": "2026-10-09T09:31:10.000Z",
+    "time_to_claim_s": 238,
+    "rework": false,
+    "rating": 4
+  }
+}

@@ -1,0 +1,1855 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sibyl.dev/schemas/sibyl-event-wire/1",
+  "title": "sibyl-event-wire/1 (POST /v1/events element)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "event_id",
+    "type",
+    "tenant_id",
+    "agent_id",
+    "ts",
+    "source",
+    "emitter_id",
+    "seq",
+    "capture_mode",
+    "redaction_profile",
+    "policy_state",
+    "attrs"
+  ],
+  "properties": {
+    "schema": {
+      "const": "sibyl-event/1"
+    },
+    "event_id": {
+      "$ref": "#/$defs/uuidv7"
+    },
+    "type": {
+      "enum": [
+        "gen_ai.request",
+        "tool.call",
+        "agent.invoke",
+        "checkpoint",
+        "handoff.requested",
+        "handoff.completed",
+        "handoff.returned",
+        "feedback",
+        "task.outcome",
+        "agent.discovered",
+        "policy.decision",
+        "observation.gap",
+        "provider.status",
+        "health.transition"
+      ],
+      "x-sibyl-enum": "EventType"
+    },
+    "tenant_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "agent_id": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_id": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "call_id": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "trace_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "span_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "parent_span_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Emitter clock; for spans, the span end time"
+    },
+    "source": {
+      "enum": [
+        "sdk",
+        "gateway",
+        "ingest",
+        "worker",
+        "api"
+      ],
+      "x-sibyl-enum": "EventSource"
+    },
+    "emitter_id": {
+      "type": "string",
+      "maxLength": 128,
+      "description": "Stable per process instance: '<source>:<host>:<pid>' or gateway replica id"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Monotonic per emitter_id; replay keeps original seq"
+    },
+    "capture_mode": {
+      "enum": [
+        "full",
+        "redacted",
+        "metadata"
+      ],
+      "x-sibyl-enum": "CaptureMode"
+    },
+    "redaction_profile": {
+      "$ref": "#/$defs/redaction_profile"
+    },
+    "policy_state": {
+      "$ref": "#/$defs/policy_state"
+    },
+    "attrs": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "not": {
+              "enum": [
+                "provider.status",
+                "observation.gap"
+              ],
+              "x-sibyl-enum": "EventType",
+              "x-sibyl-enum-subset": "condition"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "agent_id": {
+            "$ref": "#/$defs/uuid"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "gen_ai.request"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_gen_ai_request"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "tool.call"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_tool_call"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "agent.invoke"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_agent_invoke"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "checkpoint"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_checkpoint"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "handoff.requested"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_handoff_requested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "handoff.completed",
+              "handoff.returned"
+            ],
+            "x-sibyl-enum": "EventType",
+            "x-sibyl-enum-subset": "condition"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_handoff_resolved"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "feedback"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_feedback"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "task.outcome"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_task_outcome"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "agent.discovered"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_agent_discovered"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "policy.decision"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_policy_decision"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "observation.gap"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_observation_gap"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "provider.status"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_provider_status"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "health.transition"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attrs": {
+            "$ref": "#/$defs/attrs_health_transition"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "uuidv7": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "money": {
+      "type": "number",
+      "minimum": 0
+    },
+    "failure_mode": {
+      "enum": [
+        "provider_outage",
+        "latency_degradation",
+        "quality_collapse",
+        "prompt_injection",
+        "policy_violation",
+        "tool_failure",
+        "data_source_failure",
+        "infinite_loop",
+        "cost_runaway",
+        "permission_error",
+        "model_deprecation",
+        "silent_drift"
+      ],
+      "x-sibyl-enum": "FailureMode"
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{2,40}$",
+      "description": "Open, additive registry (sibyl_schemas.values.RuleId): error_rate, p95_latency, consecutive_failures, provider_status, budget_breach, refusal_share, truncation_share, schema_fail_share, heartbeat_missing, tool_loop, quality_proxy, error_trend, latency_trend, ratelimit_proximity, budget_proximity, fallback_pressure, refusal_trend, continuity_unverified, context_saturation, credential_expiry, model_deprecation, drift_cusum, anomaly_score"
+    },
+    "redaction_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "secrets_scrubbed"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "'secrets_only' is the unconditional floor; tenant profiles (e.g. pii_standard) add rules"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rules_fired": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "secrets_scrubbed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fields_redacted": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "profile_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sibyl.redaction.profile_hash"
+        },
+        "emitter_profile_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Emitter's hash when ingest applied a stricter profile"
+        },
+        "late_hits": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Secrets ingest found that the emitter missed (sibyl.redaction.late_hits)"
+        }
+      }
+    },
+    "policy_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "fresh",
+            "stale",
+            "expired",
+            "unavailable",
+            "not_applicable"
+          ],
+          "x-sibyl-enum": "PolicyState"
+        },
+        "policy_version": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "fail_mode": {
+          "enum": [
+            "open",
+            "closed",
+            null
+          ],
+          "x-sibyl-enum": "FailMode"
+        },
+        "snapshot_age_s": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "payload_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "sha256",
+        "bytes",
+        "content_type"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^blob://[0-9a-f-]{36}/\\d{4}-\\d{2}-\\d{2}/[A-Za-z0-9_./-]+$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "Of the plaintext after redaction, before compression and encryption"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "content_type": {
+          "type": "string"
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "input_messages",
+              "output_messages",
+              "system_instructions",
+              "tool_definitions",
+              "tool_args",
+              "tool_result",
+              "state",
+              "raw_span",
+              "comment",
+              "original_input"
+            ],
+            "x-sibyl-enum": "PayloadPart"
+          }
+        },
+        "redaction_profile": {
+          "$ref": "#/$defs/redaction_profile"
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "sibyl.payload.truncated (tail-first)"
+        },
+        "bytes_original": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Size before truncation"
+        }
+      }
+    },
+    "raw_span_ref": {
+      "type": "object",
+      "required": [
+        "source",
+        "trace_id",
+        "span_id",
+        "ref"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "sdk",
+            "gateway",
+            "otel"
+          ],
+          "x-sibyl-enum": "TelemetrySource"
+        },
+        "trace_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "span_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        },
+        "ref": {
+          "type": "string"
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "base_url_hash": {
+          "type": "string",
+          "description": "sha256 prefix of the allowlisted base_url; never the URL"
+        },
+        "agent_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Set when the target is a backup agent"
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cached_input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_creation_input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reasoning_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source": {
+          "enum": [
+            "provider",
+            "estimated"
+          ],
+          "x-sibyl-enum": "UsageSource"
+        }
+      }
+    },
+    "attrs_gen_ai_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "provider",
+        "request_model",
+        "status",
+        "latency_ms",
+        "contributions",
+        "merge_state"
+      ],
+      "properties": {
+        "operation": {
+          "enum": [
+            "chat",
+            "text_completion",
+            "embeddings",
+            "generate_content"
+          ],
+          "x-sibyl-enum": "GenAiOperation"
+        },
+        "provider": {
+          "type": "string",
+          "description": "gen_ai.provider.name value, e.g. openai, anthropic, ollama"
+        },
+        "request_model": {
+          "type": "string"
+        },
+        "response_model": {
+          "type": "string"
+        },
+        "response_id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "error"
+          ],
+          "x-sibyl-enum": "CallStatus"
+        },
+        "error_type": {
+          "type": "string",
+          "description": "OTel error.type: HTTP status as string, exception class, or 'timeout'"
+        },
+        "http_status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ttfb_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "streamed": {
+          "type": "boolean"
+        },
+        "usage": {
+          "$ref": "#/$defs/usage"
+        },
+        "cost_usd": {
+          "$ref": "#/$defs/money"
+        },
+        "cost_source": {
+          "type": "string",
+          "description": "price table id and version, e.g. prices/2026-10-01"
+        },
+        "finish_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "temperature": {
+              "type": "number"
+            },
+            "top_p": {
+              "type": "number"
+            },
+            "top_k": {
+              "type": "integer"
+            },
+            "max_tokens": {
+              "type": "integer"
+            },
+            "seed": {
+              "type": "integer"
+            },
+            "stop_sequences": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "frequency_penalty": {
+              "type": "number"
+            },
+            "presence_penalty": {
+              "type": "number"
+            },
+            "choice_count": {
+              "type": "integer"
+            },
+            "output_type": {
+              "enum": [
+                "text",
+                "json",
+                "image",
+                "speech"
+              ],
+              "x-sibyl-enum": "OutputType"
+            },
+            "service_tier": {
+              "type": "string"
+            },
+            "tool_definitions_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "tool_calls_requested": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "model_context_limit": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "utilisation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Derived: input_tokens / model_context_limit"
+            }
+          }
+        },
+        "ratelimit": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "limit_requests": {
+              "type": "integer"
+            },
+            "remaining_requests": {
+              "type": "integer"
+            },
+            "reset_requests_ms": {
+              "type": "integer"
+            },
+            "limit_tokens": {
+              "type": "integer"
+            },
+            "remaining_tokens": {
+              "type": "integer"
+            },
+            "reset_tokens_ms": {
+              "type": "integer"
+            },
+            "headroom": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Derived: min(remaining/limit) across requests and tokens"
+            }
+          }
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "attempt"
+          ],
+          "properties": {
+            "attempt": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "inline_fallback_used": {
+              "type": "boolean"
+            },
+            "fallback_target": {
+              "$ref": "#/$defs/target"
+            },
+            "breaker_state": {
+              "enum": [
+                "closed",
+                "open",
+                "half_open"
+              ],
+              "x-sibyl-enum": "BreakerState"
+            }
+          }
+        },
+        "route": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "decision"
+          ],
+          "properties": {
+            "decision": {
+              "enum": [
+                "primary",
+                "failover",
+                "inline_fallback",
+                "canary",
+                "stale_primary"
+              ],
+              "x-sibyl-enum": "RouteDecision"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "from": {
+              "$ref": "#/$defs/target"
+            },
+            "to": {
+              "$ref": "#/$defs/target"
+            },
+            "transition_id": {
+              "$ref": "#/$defs/uuid"
+            }
+          }
+        },
+        "server": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "type": "string"
+            },
+            "port": {
+              "type": "integer"
+            }
+          }
+        },
+        "conversation_id": {
+          "type": "string"
+        },
+        "prompt_version": {
+          "type": "string",
+          "description": "Declared version, else sha256 prefix of system instructions"
+        },
+        "data_source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_ref"
+        },
+        "content_hashes": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/sha256"
+            },
+            "output": {
+              "$ref": "#/$defs/sha256"
+            },
+            "system": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "output_chars": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eval_sample": {
+          "type": "boolean"
+        },
+        "contributions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "sdk",
+              "gateway",
+              "otel"
+            ],
+            "x-sibyl-enum": "TelemetrySource"
+          }
+        },
+        "merge_state": {
+          "enum": [
+            "partial",
+            "complete"
+          ],
+          "x-sibyl-enum": "MergeState"
+        },
+        "policy_sdk_version": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "SDK's last-seen policy version when the gateway's differs (API §8.6)"
+        },
+        "cost_unpriced": {
+          "type": "boolean",
+          "description": "No price row matched at ingest"
+        },
+        "capture_override_rejected": {
+          "type": "boolean",
+          "description": "X-Sibyl-Capture asked for a looser mode and was ignored"
+        },
+        "system_fingerprint": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Provider fingerprint of the serving backend (OpenAI system_fingerprint)."
+        },
+        "parent_run_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Run tree: the run (task) that directly contains this node."
+        },
+        "step_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Run tree: 0-based order of this node within its parent run."
+        },
+        "payload_inline": {
+          "$ref": "#/$defs/payload_inline"
+        }
+      }
+    },
+    "attrs_tool_call": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_name",
+        "tool_type",
+        "status",
+        "latency_ms"
+      ],
+      "properties": {
+        "tool_name": {
+          "type": "string"
+        },
+        "tool_type": {
+          "enum": [
+            "function",
+            "mcp",
+            "a2a",
+            "http",
+            "retrieval",
+            "code",
+            "extension",
+            "datastore"
+          ],
+          "x-sibyl-enum": "ToolType"
+        },
+        "tool_call_id": {
+          "type": "string"
+        },
+        "mcp_server": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "error"
+          ],
+          "x-sibyl-enum": "CallStatus"
+        },
+        "error_type": {
+          "type": "string"
+        },
+        "latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "side_effect_class": {
+          "enum": [
+            "none",
+            "read",
+            "write",
+            "external",
+            "unknown"
+          ],
+          "default": "unknown",
+          "x-sibyl-enum": "SideEffectClass"
+        },
+        "args_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "result_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_ref"
+        },
+        "parent_run_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Run tree: the run (task) that directly contains this node."
+        },
+        "step_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Run tree: 0-based order of this node within its parent run."
+        },
+        "handoff_to_agent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Run tree: agent ref (slug, uuid or framework agent name) handed off to."
+        },
+        "action_effect": {
+          "enum": [
+            "allow",
+            "block",
+            "held",
+            "approved",
+            "denied"
+          ],
+          "x-sibyl-enum": "ToolActionEffect",
+          "description": "Action Gate outcome for this call: allow, block, held (awaiting a person), approved, or denied (a denied, expired or cancelled hold)."
+        },
+        "action_rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Action Gate rule that decided the call (absent when no rule applied)."
+        },
+        "held_action_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Held action created for an escalated call."
+        },
+        "payload_inline": {
+          "$ref": "#/$defs/payload_inline"
+        }
+      }
+    },
+    "attrs_agent_invoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "agent_name"
+      ],
+      "properties": {
+        "phase": {
+          "enum": [
+            "start",
+            "end"
+          ],
+          "x-sibyl-enum": "InvokePhase"
+        },
+        "agent_name": {
+          "type": "string"
+        },
+        "parent_task_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "error",
+            "handed_off",
+            "cancelled"
+          ],
+          "x-sibyl-enum": "EventStatus"
+        },
+        "error_type": {
+          "type": "string"
+        },
+        "duration_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "steps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tool_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "model_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost_usd": {
+          "$ref": "#/$defs/money"
+        },
+        "a2a": {
+          "type": "object",
+          "properties": {
+            "remote_task_id": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "callee_agent_id": {
+              "$ref": "#/$defs/uuid"
+            }
+          }
+        },
+        "parent_run_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Run tree: the run (task) that directly contains this node."
+        },
+        "step_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Run tree: 0-based order of this node within its parent run."
+        },
+        "handoff_to_agent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Run tree: agent ref (slug, uuid or framework agent name) handed off to."
+        }
+      }
+    },
+    "attrs_checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint_id",
+        "seq",
+        "step_index",
+        "state_bytes",
+        "completed_count",
+        "pending_count"
+      ],
+      "properties": {
+        "checkpoint_id": {
+          "$ref": "#/$defs/uuidv7"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "step_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "step_name": {
+          "type": "string"
+        },
+        "state_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state_ref": {
+          "$ref": "#/$defs/payload_ref",
+          "description": "Present when state_bytes > 65536"
+        },
+        "state_schema": {
+          "type": "string"
+        },
+        "completed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pending_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "side_effects_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "prev_checkpoint_id": {
+          "$ref": "#/$defs/uuidv7"
+        },
+        "payload_inline": {
+          "$ref": "#/$defs/payload_inline"
+        }
+      }
+    },
+    "attrs_handoff_requested": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packet_id",
+        "trigger",
+        "fidelity",
+        "assembled_by",
+        "failure_mode"
+      ],
+      "properties": {
+        "packet_id": {
+          "$ref": "#/$defs/uuidv7"
+        },
+        "trigger": {
+          "enum": [
+            "sdk_explicit",
+            "rule",
+            "a2a_state",
+            "operator",
+            "approval_timeout"
+          ],
+          "x-sibyl-enum": "HandoffTrigger"
+        },
+        "rule_id": {
+          "$ref": "#/$defs/rule_id"
+        },
+        "alert_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "transition_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "fidelity": {
+          "enum": [
+            "checkpoint",
+            "request_only"
+          ],
+          "x-sibyl-enum": "Fidelity"
+        },
+        "assembled_by": {
+          "enum": [
+            "sdk",
+            "control_plane"
+          ],
+          "x-sibyl-enum": "AssembledBy"
+        },
+        "failure_mode": {
+          "$ref": "#/$defs/failure_mode"
+        },
+        "checkpoint_seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "packet_ref": {
+          "$ref": "#/$defs/payload_ref"
+        },
+        "reason_preview": {
+          "type": "string",
+          "maxLength": 280
+        },
+        "payload_inline": {
+          "$ref": "#/$defs/payload_inline"
+        }
+      }
+    },
+    "attrs_handoff_resolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packet_id",
+        "outcome",
+        "operator_ref",
+        "claimed_at",
+        "resolved_at"
+      ],
+      "properties": {
+        "packet_id": {
+          "$ref": "#/$defs/uuidv7"
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "returned",
+            "abandoned"
+          ],
+          "x-sibyl-enum": "HandoffEventOutcome"
+        },
+        "operator_ref": {
+          "$ref": "#/$defs/uuid",
+          "description": "User id, never email"
+        },
+        "claimed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resolved_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "time_to_claim_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rework": {
+          "type": "boolean"
+        },
+        "rating": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "returned_to_agent_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "note_ref": {
+          "$ref": "#/$defs/payload_ref"
+        },
+        "payload_inline": {
+          "$ref": "#/$defs/payload_inline"
+        }
+      }
+    },
+    "attrs_feedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feedback_id",
+        "target",
+        "score",
+        "scale",
+        "rater"
+      ],
+      "properties": {
+        "feedback_id": {
+          "$ref": "#/$defs/uuidv7"
+        },
+        "target": {
+          "type": "object",
+          "required": [
+            "kind",
+            "id"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "trace",
+                "task",
+                "call",
+                "packet"
+              ],
+              "x-sibyl-enum": "FeedbackTargetKind"
+            },
+            "id": {
+              "type": "string"
+            }
+          }
+        },
+        "score": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "description": "Normalised; raw value kept in scale"
+        },
+        "scale": {
+          "type": "string",
+          "description": "thumbs | 1-5 | 0-100 | judge:<name>"
+        },
+        "raw_value": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "rater": {
+          "enum": [
+            "end_user",
+            "operator",
+            "judge"
+          ],
+          "x-sibyl-enum": "FeedbackRater"
+        },
+        "comment_ref": {
+          "$ref": "#/$defs/payload_ref"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "payload_inline": {
+          "$ref": "#/$defs/payload_inline"
+        }
+      }
+    },
+    "attrs_task_outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "declared_by"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "success",
+            "partial",
+            "failure",
+            "abandoned",
+            "handed_off"
+          ],
+          "x-sibyl-enum": "TaskOutcome"
+        },
+        "declared_by": {
+          "enum": [
+            "sdk",
+            "operator",
+            "judge"
+          ],
+          "x-sibyl-enum": "OutcomeDeclaredBy"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "rework": {
+          "type": "boolean"
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "steps": {
+              "type": "integer"
+            },
+            "tool_calls": {
+              "type": "integer"
+            },
+            "model_calls": {
+              "type": "integer"
+            },
+            "cost_usd": {
+              "$ref": "#/$defs/money"
+            },
+            "duration_ms": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "attrs_agent_discovered": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "discovered_via",
+        "candidate",
+        "candidate_hash",
+        "resolved_agent_id",
+        "fail_mode_applied"
+      ],
+      "properties": {
+        "discovered_via": {
+          "enum": [
+            "gateway_header",
+            "api_key_default",
+            "span_attr",
+            "a2a_card",
+            "mcp_list_tools",
+            "egress_log",
+            "run_tree"
+          ],
+          "x-sibyl-enum": "DiscoveredVia"
+        },
+        "candidate": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "candidate_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        },
+        "resolved_agent_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "fail_mode_applied": {
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-sibyl-enum": "FailMode"
+        },
+        "first_call_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "first_trace_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "server_address": {
+          "type": "string"
+        }
+      }
+    },
+    "attrs_policy_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "state",
+        "fail_mode",
+        "reason"
+      ],
+      "properties": {
+        "action": {
+          "enum": [
+            "forward_stale",
+            "inline_fallback",
+            "reject_closed",
+            "reject_killed",
+            "reject_quarantined",
+            "throttle",
+            "breaker_open",
+            "unknown_agent_default",
+            "local_breaker_prefer_fallback",
+            "tool_blocked",
+            "tool_escalated"
+          ],
+          "x-sibyl-enum": "PolicyDecisionAction"
+        },
+        "state": {
+          "enum": [
+            "fresh",
+            "stale",
+            "expired",
+            "unavailable",
+            "none"
+          ],
+          "x-sibyl-enum": "PolicyDecisionState"
+        },
+        "fail_mode": {
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-sibyl-enum": "FailMode"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "snapshot_issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "from_target": {
+          "$ref": "#/$defs/target"
+        },
+        "to_target": {
+          "$ref": "#/$defs/target"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "http_status_returned": {
+          "type": "integer"
+        }
+      }
+    },
+    "attrs_observation_gap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "emitter_id",
+        "gap_start",
+        "cause",
+        "status"
+      ],
+      "properties": {
+        "emitter_id": {
+          "type": "string"
+        },
+        "gap_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "gap_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "cause": {
+          "enum": [
+            "control_plane_unreachable",
+            "emitter_silent",
+            "buffer_dropped",
+            "ingest_backpressure",
+            "clock_skew"
+          ],
+          "x-sibyl-enum": "GapCause"
+        },
+        "status": {
+          "enum": [
+            "open",
+            "closed",
+            "closed_with_loss"
+          ],
+          "x-sibyl-enum": "GapStatus"
+        },
+        "events_replayed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events_dropped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "affected_agent_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        }
+      }
+    },
+    "attrs_provider_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "status",
+        "feed"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "component": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "operational",
+            "degraded_performance",
+            "partial_outage",
+            "major_outage",
+            "maintenance",
+            "unknown"
+          ],
+          "x-sibyl-enum": "ProviderStatus"
+        },
+        "feed": {
+          "enum": [
+            "statuspage_json",
+            "probe",
+            "manual"
+          ],
+          "x-sibyl-enum": "ProviderStatusFeed"
+        },
+        "incident_id": {
+          "type": "string"
+        },
+        "incident_url": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resolved_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "probe_latency_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "attrs_health_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from_status",
+        "to_status",
+        "score",
+        "health_snapshot_id",
+        "feature_snapshot_ref",
+        "rules_fired"
+      ],
+      "properties": {
+        "from_status": {
+          "enum": [
+            "healthy",
+            "watch",
+            "degraded",
+            "failed",
+            "unknown"
+          ],
+          "x-sibyl-enum": "PriorHealthBand"
+        },
+        "to_status": {
+          "enum": [
+            "healthy",
+            "watch",
+            "degraded",
+            "failed"
+          ],
+          "x-sibyl-enum": "HealthBand"
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "health_snapshot_id": {
+          "$ref": "#/$defs/uuidv7"
+        },
+        "feature_snapshot_ref": {
+          "type": "string",
+          "pattern": "^fs_[0-9a-f-]{36}$"
+        },
+        "rules_fired": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rule_id"
+          }
+        },
+        "alert_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "recommended_action": {
+          "type": "string"
+        }
+      }
+    },
+    "payload_part": {
+      "enum": [
+        "input_messages",
+        "output_messages",
+        "system_instructions",
+        "tool_definitions",
+        "tool_args",
+        "tool_result",
+        "state",
+        "raw_span",
+        "comment",
+        "original_input"
+      ],
+      "x-sibyl-enum": "PayloadPart"
+    },
+    "payload_inline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "encoding",
+        "data",
+        "content_type"
+      ],
+      "description": "Wire-only body (≤ 4 MiB). Checkpoints and handoff packets ride here as application/vnd.sibyl.checkpoint+json / application/vnd.sibyl.handoff+json.",
+      "properties": {
+        "encoding": {
+          "enum": [
+            "utf8",
+            "base64"
+          ],
+          "x-sibyl-enum": "PayloadEncoding"
+        },
+        "data": {
+          "type": "string",
+          "maxLength": 4194304
+        },
+        "content_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/payload_part"
+          }
+        }
+      }
+    },
+    "batch": {
+      "title": "POST /v1/events body",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "events"
+      ],
+      "properties": {
+        "schema": {
+          "const": "sibyl-event/1"
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#"
+          }
+        }
+      }
+    }
+  },
+  "description": "sibyl-event/1 as sent by clients: no observed_at or ingest (ingest-authored), and attrs.payload_inline allowed where the canonical attrs carry a PayloadRef. $defs/batch is the request body {schema, events[]}."
+}

@@ -1,0 +1,23 @@
+# S-10 Silent degradation: schema failures (ML §8.2; R8). The model returns malformed tool-call
+# arguments on 35 % of tool-bearing calls; the agent's tool validates them and raises
+# ValidationError (SDK tool span -> tool.call error_type) while every model call is a 200.
+id: S-10
+title: Silent degradation, malformed tool arguments, tier 2 (SDK)
+gate_class: silent
+duration_s: 300
+tenants:
+  meridian:
+    agents:
+      returns-agent: sdk_tools   # tier 2, anthropic-stub, SDK-only agent
+chaos:
+  - {at: 30, double: anthropic-stub, agents: [returns-agent], set: {schema_failure_rate: 0.35}}
+labels:
+  - {agent: returns-agent, kind: onset, t: 30, failure_mode: tool_failure}
+expect:
+  - detect: {agent: returns-agent, rule: R8, by_t: 300}
+  - no_alert: {agent: returns-agent, rule: [R1, R3]}
+  - failure_mode: {agent: returns-agent, mode: tool_failure}
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}
+  - handoff: {agent: returns-agent}

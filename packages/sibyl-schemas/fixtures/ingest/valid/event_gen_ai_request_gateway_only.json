@@ -1,0 +1,44 @@
+{
+  "schema": "sibyl-event/1",
+  "event_id": "019276a3-0001-7000-8000-000000000001",
+  "type": "gen_ai.request",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "task_id": null,
+  "call_id": "019276a3-0001-7000-8000-0000000000aa",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "7a1b2c3d4e5f6072",
+  "ts": "2026-10-09T09:14:35.001Z",
+  "observed_at": "2026-10-09T09:14:36.420Z",
+  "source": "gateway",
+  "emitter_id": "gateway:gw-1:4211",
+  "seq": 1043,
+  "capture_mode": "metadata",
+  "redaction_profile": {
+    "id": "secrets_only",
+    "version": 1,
+    "rules_fired": [],
+    "secrets_scrubbed": 0
+  },
+  "policy_state": {
+    "state": "fresh",
+    "policy_version": 42,
+    "fail_mode": "open"
+  },
+  "attrs": {
+    "operation": "chat",
+    "provider": "anthropic",
+    "request_model": "claude-sonnet-5",
+    "status": "error",
+    "error_type": "429",
+    "http_status": 429,
+    "latency_ms": 212.5,
+    "route": {
+      "decision": "primary"
+    },
+    "contributions": [
+      "gateway"
+    ],
+    "merge_state": "partial"
+  }
+}

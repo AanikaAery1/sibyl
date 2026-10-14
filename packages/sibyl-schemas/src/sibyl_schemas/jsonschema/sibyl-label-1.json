@@ -1,0 +1,349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sibyl.dev/schemas/sibyl-label/1",
+  "title": "sibyl-label/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "label_id",
+    "tenant_id",
+    "agent_id",
+    "kind",
+    "judges",
+    "judged_as_of",
+    "labelled_at",
+    "labeller",
+    "value"
+  ],
+  "properties": {
+    "schema": {
+      "const": "sibyl-label/1"
+    },
+    "label_id": {
+      "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/uuidv7"
+    },
+    "tenant_id": {
+      "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/uuid"
+    },
+    "agent_id": {
+      "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/uuid"
+    },
+    "kind": {
+      "enum": [
+        "alert_verdict",
+        "task_outcome",
+        "feedback",
+        "failover_outcome",
+        "handoff_outcome",
+        "provider_incident"
+      ],
+      "x-sibyl-enum": "LabelKind"
+    },
+    "judges": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "health_snapshot",
+            "event",
+            "alert",
+            "packet",
+            "transition",
+            "window"
+          ],
+          "x-sibyl-enum": "JudgesKind"
+        },
+        "id": {
+          "type": "string"
+        },
+        "window": {
+          "type": "object",
+          "required": [
+            "start",
+            "end"
+          ],
+          "properties": {
+            "start": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "end": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "feature_snapshot_ref": {
+          "type": "string",
+          "pattern": "^fs_[0-9a-f-]{36}$"
+        }
+      }
+    },
+    "judged_as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "labelled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "labeller": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "operator",
+            "end_user",
+            "sdk",
+            "judge",
+            "worker"
+          ],
+          "x-sibyl-enum": "LabellerKind"
+        },
+        "ref": {
+          "type": "string"
+        }
+      }
+    },
+    "value": {
+      "type": "object"
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 500
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "alert_verdict"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "required": [
+              "verdict"
+            ],
+            "properties": {
+              "verdict": {
+                "enum": [
+                  "tp",
+                  "fp",
+                  "unsure"
+                ],
+                "x-sibyl-enum": "Verdict"
+              },
+              "actual_failure_mode": {
+                "oneOf": [
+                  {
+                    "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/failure_mode"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lead_time_s": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "task_outcome"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "required": [
+              "outcome"
+            ],
+            "properties": {
+              "outcome": {
+                "enum": [
+                  "success",
+                  "partial",
+                  "failure",
+                  "abandoned",
+                  "handed_off"
+                ],
+                "x-sibyl-enum": "TaskOutcome"
+              },
+              "rework": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "feedback"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "required": [
+              "score"
+            ],
+            "properties": {
+              "score": {
+                "type": "number",
+                "minimum": -1,
+                "maximum": 1
+              },
+              "scale": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "failover_outcome"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "required": [
+              "fallback_succeeded"
+            ],
+            "properties": {
+              "fallback_succeeded": {
+                "type": "boolean"
+              },
+              "time_to_recover_s": {
+                "type": "integer"
+              },
+              "failback_verified": {
+                "type": "boolean"
+              },
+              "undone_by_operator": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "handoff_outcome"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "required": [
+              "outcome"
+            ],
+            "properties": {
+              "outcome": {
+                "enum": [
+                  "completed",
+                  "returned",
+                  "abandoned"
+                ],
+                "x-sibyl-enum": "HandoffEventOutcome"
+              },
+              "rework": {
+                "type": "boolean"
+              },
+              "rating": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "packet_useful": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "provider_incident"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "required": [
+              "provider",
+              "status",
+              "rule_fired_before"
+            ],
+            "properties": {
+              "provider": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "incident_id": {
+                "type": "string"
+              },
+              "rule_fired_before": {
+                "type": "boolean"
+              },
+              "lead_time_s": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

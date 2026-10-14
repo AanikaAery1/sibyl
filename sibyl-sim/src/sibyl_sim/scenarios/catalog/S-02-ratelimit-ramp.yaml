@@ -1,0 +1,49 @@
+# S-02 Rate-limit ramp, tiers 2-3 (ML §8.2; ROADMAP M3 3.1). Headroom 0.6 -> 0.02 over 12 min,
+# then 429s. L3 must lead the first 429 by >= 6 min; tier 2 degrades then shifts (R40),
+# tier 3 fails over pre-emptively.
+# The ramp is a double-wide knob (the doubles have no per-credential ramp clock), so it runs on
+# anthropic-stub, which northstar does not use.
+id: S-02
+title: Rate-limit ramp, tiers 2-3, anthropic-stub
+requires: [P]
+gate_class: ramp
+duration_s: 1500
+health_poll_s: 30
+tenants:
+  meridian:
+    agents:
+      collections-bot: busy   # tier 2
+      email-drafter: busy     # tier 3
+chaos:
+  - {at: 0, double: anthropic-stub, set: {ramp: {start_headroom: 0.6, end_headroom: 0.02, ramp_s: 720, then_429: true, retry_after_s: 20}}}
+  - {at: 1200, double: anthropic-stub, reset: true}
+labels:
+  - {agent: collections-bot, kind: precursor, t: 300, failure_mode: provider_outage}
+  - {agent: collections-bot, kind: onset, t: 720, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: collections-bot, kind: recovery, t: 1200}
+  - {agent: email-drafter, kind: precursor, t: 300, failure_mode: provider_outage}
+  - {agent: email-drafter, kind: onset, t: 720, failure_mode: provider_outage}
+  - {agent: email-drafter, kind: recovery, t: 1200}
+  # the ramp is double-wide: every meridian agent on anthropic-stub shares the account's headroom
+  - {agent: refund-agent, kind: onset, t: 720, failure_mode: provider_outage}
+  - {agent: returns-agent, kind: onset, t: 720, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: driver-assistant, kind: onset, t: 720, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: fuel-analyst, kind: onset, t: 720, failure_mode: provider_outage}
+expect:
+  - predict: {agent: collections-bot, rule: L3, by_t: 360}
+  - predict: {agent: email-drafter, rule: L3, by_t: 360}
+  - detect: {agent: collections-bot, rule: R1, by_t: 810}
+  - action: {agent: collections-bot, to_state: degraded, by_t: 480}
+    note: "R40 degrade_then_auto on tier 2"
+  - action: {agent: email-drafter, to_state: failed_over, actor: rule, by_t: 480}
+  - tier_gate: {agent: email-drafter, mode: automatic}
+  - recommended_action: {agent: collections-bot, action: reroute_to_fallback}
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - verdict_loop: {min_share: 0.9}
+personas:
+  - {at: 900, persona: operator, do: close_alert, match: {agent: collections-bot, rule: L3}, verdict: tp}
+  - {at: 1260, persona: operator, do: close_alert, match: {agent: email-drafter, rule: R1}, verdict: tp}
+  - {at: 1300, persona: operator, do: close_without_verdict, agent: email-drafter, expect_status: 422}
+  - {at: end, persona: admin, do: drain_unverdicted, verdict: tp}
+  - {at: end, persona: auditor, do: audit_check}

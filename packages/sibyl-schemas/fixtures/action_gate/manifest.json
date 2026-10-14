@@ -1,0 +1,85 @@
+{
+  "area": "action_gate",
+  "cases": [
+    {
+      "file": "valid/payments_policy.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": true
+    },
+    {
+      "file": "valid/open_policy.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": true
+    },
+    {
+      "file": "invalid/bad_effect.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": false,
+      "error_pointer": "/rules/0/effect",
+      "why": "effect is allow | escalate | block"
+    },
+    {
+      "file": "invalid/default_block.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": false,
+      "error_pointer": "/default_effect",
+      "why": "default_effect is allow or escalate"
+    },
+    {
+      "file": "invalid/two_operators.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": false,
+      "error_pointer": "/rules/0/when",
+      "why": "one operator per predicate node"
+    },
+    {
+      "file": "invalid/ordered_string_bound.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": false,
+      "error_pointer": "/rules/0/when",
+      "why": "ordered comparisons take a number"
+    },
+    {
+      "file": "invalid/pointer_without_slash.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": false,
+      "error_pointer": "/rules/0/when",
+      "why": "paths are JSON pointers"
+    },
+    {
+      "file": "invalid/cumulative_sum_and_count.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": false,
+      "error_pointer": "/rules/2/cumulative",
+      "why": "exactly one of sum or count"
+    },
+    {
+      "file": "invalid/enforced_without_allowlist.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": false,
+      "error_pointer": "/tool_allowlist",
+      "why": "an enforced allowlist needs a list"
+    },
+    {
+      "file": "invalid/unknown_pii_detector.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": false,
+      "error_pointer": "/rules/4/data_class/pii/0",
+      "why": "pii_standard detector ids only"
+    },
+    {
+      "file": "invalid/eval_string_rule.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": false,
+      "error_pointer": "/rules/0/when",
+      "why": "predicates are a JSON AST, never code"
+    },
+    {
+      "file": "invalid/open_extra_member.json",
+      "schema": "sibyl-action-policy/1",
+      "valid": false,
+      "error_pointer": "",
+      "why": "no unknown members"
+    }
+  ]
+}

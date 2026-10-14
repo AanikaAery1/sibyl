@@ -1,0 +1,41 @@
+# S-13 Correlated multi-agent failure (ML §8.2; ROADMAP M2 2.3): anthropic-stub degrades for
+# every meridian agent on it. One provider incident collects the per-agent alerts.
+id: S-13
+title: Correlated multi-agent collapse, anthropic-stub, mixed tiers
+gate_class: hard
+duration_s: 200
+# B35: tier 2 inline-falls back to its vaulted alt provider (openai-stub), which masks the
+# outage: no failed call, no R1/R3, no saga. collections-bot opts out per request
+# (X-Sibyl-Fallback: none) so it joins the incident and fails over; the other two tier-2
+# agents stay masked and are detected by fallback pressure (L5).
+profiles:
+  busy_no_inline: {rps: 0.5, fallback: none}
+tenants:
+  meridian:
+    agents:
+      refund-agent: busy       # tier 1
+      collections-bot: busy_no_inline    # tier 2
+      returns-agent: busy      # tier 2
+      driver-assistant: busy   # tier 2
+      email-drafter: busy      # tier 3
+      fuel-analyst: busy       # tier 3
+chaos:
+  - {at: 30, double: anthropic-stub, tenants: [meridian], set: {error_rate: 0.9, error_statuses: [502, 503]}}
+labels:
+  - {agent: refund-agent, kind: onset, t: 30, failure_mode: provider_outage}
+  - {agent: collections-bot, kind: onset, t: 30, failure_mode: provider_outage}
+  - {agent: returns-agent, kind: onset, t: 30, failure_mode: provider_outage, masked: true}  # B35
+  - {agent: driver-assistant, kind: onset, t: 30, failure_mode: provider_outage, masked: true}  # B35
+  - {agent: email-drafter, kind: onset, t: 30, failure_mode: provider_outage}
+  - {agent: fuel-analyst, kind: onset, t: 30, failure_mode: provider_outage}
+expect:
+  - detect: {agent: refund-agent, rule: [R1, R3], by_t: 90}
+  - detect: {agent: collections-bot, rule: [R1, R3], by_t: 120}
+  - detect: {agent: email-drafter, rule: [R1, R3], by_t: 150}
+  - provider_incident: {provider: anthropic-stub, min_agents: 4, by_t: 200}
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}
+  - isolated: {tenant: northstar}
+  - action: {agent: collections-bot, to_state: failed_over, by_t: 200}
+  - audit_has: {verbs: [alert.fired]}

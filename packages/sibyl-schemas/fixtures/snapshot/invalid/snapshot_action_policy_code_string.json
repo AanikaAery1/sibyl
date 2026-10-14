@@ -1,0 +1,449 @@
+{
+  "schema": "sibyl.policy_snapshot/1",
+  "version": 4182,
+  "issued_at": "2026-10-10T12:00:00.000Z",
+  "expires_at": "2026-10-10T12:01:00.000Z",
+  "ttl_s": 60,
+  "grace_s": 300,
+  "kid": "snap-2026-10-v1",
+  "tenants": {
+    "0192767f-0000-7000-8000-00000000a001": {
+      "routing_version": 917,
+      "unknown_agent_fail_mode": "open",
+      "demo_mode": true,
+      "capture_profiles": {
+        "default": {
+          "profile_hash": "680615bbf4069687ebedc201bbf072df09663e6098c001a9ea47c346ae480577",
+          "detectors_ref": "detectors/v1"
+        }
+      },
+      "api_keys": {
+        "Qx7Lm2Np9Rt4": {
+          "key_id": "0192f0c1-0000-7000-8000-000000000001",
+          "secret_hash": "6ab9f1eb8f7d3388f4f9d586f66e99fd54080df2c446f0e58668b09c08a16dd0",
+          "env": "live",
+          "scopes": [
+            "gateway:proxy",
+            "routing:read"
+          ],
+          "agent_id": null,
+          "status": "active",
+          "expires_at": "2027-10-10T00:00:00.000Z"
+        },
+        "Bd3Fg5Hj7Kl9": {
+          "key_id": "0192f0c1-0000-7000-8000-000000000002",
+          "secret_hash": "015f7e6bc5aeaf483724089e9252cc13b50951a6b69412522765cff4d780306e",
+          "env": "live",
+          "scopes": [
+            "ingest:write",
+            "routing:read",
+            "handoff:write"
+          ],
+          "agent_id": "0192767f-0000-7000-8000-00000000c011",
+          "status": "active",
+          "expires_at": "2027-10-10T00:00:00.000Z"
+        },
+        "Zw8Yx6Vu4Ts2": {
+          "key_id": "0192f0c1-0000-7000-8000-000000000003",
+          "secret_hash": "2f5052c9fd15b19a18c584d01363568198613f0c34e84409ef7938709a159ec2",
+          "env": "live",
+          "scopes": [
+            "ingest:write",
+            "routing:read",
+            "handoff:write"
+          ],
+          "agent_id": "0192767f-0000-7000-8000-00000000c011",
+          "status": "rotating",
+          "rotation_grace_until": "2026-10-10T18:00:00.000Z",
+          "expires_at": "2026-10-11T00:00:00.000Z"
+        }
+      },
+      "providers": {
+        "0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a11": {
+          "slug": "openai",
+          "provider_kind": "openai",
+          "dialect": "openai_compatible",
+          "base_url": "https://api.openai.com/v1",
+          "is_enabled": true
+        },
+        "0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a12": {
+          "slug": "anthropic",
+          "provider_kind": "anthropic",
+          "dialect": "anthropic",
+          "base_url": "https://api.anthropic.com",
+          "is_enabled": true
+        },
+        "0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a13": {
+          "slug": "sim-provider-b",
+          "provider_kind": "custom",
+          "dialect": "openai_compatible",
+          "base_url": "https://127.0.0.1:18082/v1",
+          "is_enabled": true
+        }
+      },
+      "agents": {
+        "0192767f-0000-7000-8000-00000000c010": {
+          "slug": "billing-agent",
+          "tier": 2,
+          "fail_mode": "open",
+          "risk_class": "limited",
+          "capture": {
+            "mode": "full",
+            "profile": "default"
+          },
+          "degraded_mode": "safe_no_tools",
+          "inline_fallback": false,
+          "primary": {
+            "provider_id": "0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a11",
+            "model": "gpt-5.4"
+          },
+          "route": {
+            "state": "failed_over",
+            "target_kind": "model",
+            "canary_pct": 100,
+            "since": "2026-10-09T11:58:40.000Z",
+            "step_position": 2,
+            "transition_id": "0192f0b2-0000-7000-8000-0000000000f1"
+          },
+          "fallback_chain": {
+            "chain_id": "0192f0b2-0000-7000-8000-0000000000c1",
+            "version": 3,
+            "steps": [
+              {
+                "position": 1,
+                "kind": "retry",
+                "max_attempts": 1,
+                "risk": "low",
+                "viable": true
+              },
+              {
+                "position": 2,
+                "kind": "alt_model_same_provider",
+                "provider_id": "0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a11",
+                "model": "gpt-5-mini",
+                "risk": "low",
+                "viable": true
+              },
+              {
+                "position": 3,
+                "kind": "alt_provider",
+                "provider_id": "0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a12",
+                "model": "claude-sonnet-5",
+                "credential_id": "0192f0b2-0000-7000-8000-0000000000e1",
+                "risk": "medium",
+                "viable": true
+              },
+              {
+                "position": 4,
+                "kind": "human_queue",
+                "risk": "high",
+                "viable": true
+              }
+            ]
+          },
+          "limits": {
+            "max_inflight": 50,
+            "rps": 20.0,
+            "budget_usd_month": "1500.0000",
+            "spent_usd_month": "812.4000"
+          },
+          "identity": {
+            "identity_version": 3,
+            "enforcement": "observe",
+            "allowed_models": [
+              "gpt-5.4",
+              "gpt-5-mini",
+              "claude-sonnet-5"
+            ],
+            "allowed_tools": null,
+            "allowed_providers": null
+          },
+          "action_policies": [
+            "0192767f-0000-7000-8000-0000000ac002"
+          ]
+        },
+        "0192767f-0000-7000-8000-00000000c011": {
+          "slug": "quote-assistant",
+          "tier": 1,
+          "fail_mode": "closed",
+          "risk_class": "high",
+          "capture": {
+            "mode": "full",
+            "profile": "default"
+          },
+          "degraded_mode": "safe_no_tools",
+          "inline_fallback": false,
+          "primary": {
+            "provider_id": "0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a11",
+            "model": "gpt-5.4"
+          },
+          "route": {
+            "state": "active",
+            "target_kind": "primary",
+            "canary_pct": 100,
+            "since": "2026-10-09T11:58:40.000Z"
+          },
+          "fallback_chain": {
+            "chain_id": "0192f0b2-0000-7000-8000-0000000000c1",
+            "version": 3,
+            "steps": [
+              {
+                "position": 1,
+                "kind": "retry",
+                "max_attempts": 1,
+                "risk": "low",
+                "viable": true
+              },
+              {
+                "position": 2,
+                "kind": "alt_model_same_provider",
+                "provider_id": "0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a11",
+                "model": "gpt-5-mini",
+                "risk": "low",
+                "viable": true
+              },
+              {
+                "position": 3,
+                "kind": "alt_provider",
+                "provider_id": "0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a12",
+                "model": "claude-sonnet-5",
+                "credential_id": "0192f0b2-0000-7000-8000-0000000000e1",
+                "risk": "medium",
+                "viable": true
+              },
+              {
+                "position": 4,
+                "kind": "human_queue",
+                "risk": "high",
+                "viable": true
+              }
+            ]
+          },
+          "limits": {
+            "max_inflight": 50,
+            "rps": 20.0,
+            "budget_usd_month": "1500.0000",
+            "spent_usd_month": "812.4000"
+          },
+          "identity": {
+            "identity_version": 3,
+            "enforcement": "observe",
+            "allowed_models": [
+              "gpt-5.4",
+              "gpt-5-mini",
+              "claude-sonnet-5"
+            ],
+            "allowed_tools": null,
+            "allowed_providers": null
+          },
+          "action_policies": [
+            "0192767f-0000-7000-8000-0000000ac001",
+            "0192767f-0000-7000-8000-0000000ac002"
+          ]
+        },
+        "0192767f-0000-7000-8000-00000000c012": {
+          "slug": "unclaimed/3f9a1c0e",
+          "tier": 3,
+          "fail_mode": "open",
+          "risk_class": "limited",
+          "capture": {
+            "mode": "full",
+            "profile": "default"
+          },
+          "degraded_mode": "safe_no_tools",
+          "inline_fallback": true,
+          "primary": {
+            "provider_id": "0192f0a1-7b2c-7e3d-9a4b-5c6d7e8f9a11",
+            "model": "gpt-5.4"
+          },
+          "route": {
+            "state": "killed",
+            "target_kind": "primary",
+            "canary_pct": 100,
+            "since": "2026-10-09T11:58:40.000Z"
+          },
+          "fallback_chain": null,
+          "limits": {
+            "max_inflight": null,
+            "rps": null,
+            "budget_usd_month": null,
+            "spent_usd_month": "0"
+          },
+          "identity": {
+            "identity_version": 3,
+            "enforcement": "observe",
+            "allowed_models": [
+              "gpt-5.4",
+              "gpt-5-mini",
+              "claude-sonnet-5"
+            ],
+            "allowed_tools": null,
+            "allowed_providers": null
+          }
+        }
+      },
+      "kill_switches": [
+        {
+          "kill_switch_id": "0192f0d1-0000-7000-8000-000000000001",
+          "scope_kind": "agent",
+          "scope_id": "0192767f-0000-7000-8000-00000000c012",
+          "pulled_at": "2026-10-10T11:40:00.000Z"
+        }
+      ],
+      "action_policies": {
+        "0192767f-0000-7000-8000-0000000ac001": {
+          "schema": "sibyl-action-policy/1",
+          "policy_id": "0192767f-0000-7000-8000-0000000ac001",
+          "version": 3,
+          "default_effect": "escalate",
+          "tool_allowlist_enforced": true,
+          "tool_allowlist": [
+            "payments.*",
+            "crm.lookup",
+            "email.send",
+            "search.*"
+          ],
+          "sensitive_tools": [
+            "payments.*"
+          ],
+          "external_tools": [
+            "email.send"
+          ],
+          "hold_timeout_s": 900,
+          "rules": [
+            {
+              "rule_id": "transfer-over-limit",
+              "tool": "payments.transfer",
+              "when": "amount > 10000",
+              "effect": "block",
+              "reason": "Transfers above 10,000 are not authorised for this agent"
+            },
+            {
+              "rule_id": "transfer-currency",
+              "tool": "payments.transfer",
+              "when": {
+                "not": {
+                  "in": [
+                    "/currency",
+                    [
+                      "INR",
+                      "USD"
+                    ]
+                  ]
+                }
+              },
+              "effect": "block",
+              "reason": "Only INR and USD transfers are allowed"
+            },
+            {
+              "rule_id": "transfer-daily-cap",
+              "tool": "payments.transfer",
+              "when": {
+                "all": [
+                  {
+                    "exists": "/to_account"
+                  },
+                  {
+                    "le": [
+                      "/amount",
+                      10000
+                    ]
+                  }
+                ]
+              },
+              "cumulative": {
+                "sum": "/amount",
+                "max": 50000,
+                "window_s": 86400
+              },
+              "effect": "allow",
+              "reason": "Within the per-transfer limit and the 50,000 daily cap"
+            },
+            {
+              "rule_id": "refund-burst",
+              "tool": "payments.refund",
+              "cumulative": {
+                "count": true,
+                "max": 20,
+                "window_s": 60,
+                "per": "/customer_id",
+                "on_exceed": "block"
+              },
+              "effect": "escalate",
+              "reason": "Refunds need a person; more than 20 a minute per customer is blocked"
+            },
+            {
+              "rule_id": "no-pii-out",
+              "tool": "email.send",
+              "data_class": {
+                "secrets": true,
+                "pii": [
+                  "credit_card",
+                  "iban",
+                  "national_id"
+                ]
+              },
+              "effect": "block",
+              "reason": "Card, bank and national ids never leave by email"
+            },
+            {
+              "rule_id": "email-internal-only",
+              "tool": "email.send",
+              "when": {
+                "matches": [
+                  "/to",
+                  "[A-Za-z0-9._%+-]+@meridian\\.example"
+                ]
+              },
+              "effect": "allow",
+              "reason": "Internal recipients only"
+            },
+            {
+              "rule_id": "reads",
+              "tool": "search.*",
+              "effect": "allow",
+              "reason": "Searches are read-only"
+            },
+            {
+              "rule_id": "crm",
+              "tool": "crm.lookup",
+              "effect": "allow",
+              "reason": "Lookups are read-only"
+            }
+          ]
+        },
+        "0192767f-0000-7000-8000-0000000ac002": {
+          "schema": "sibyl-action-policy/1",
+          "policy_id": "0192767f-0000-7000-8000-0000000ac002",
+          "version": 1,
+          "default_effect": "allow",
+          "tool_allowlist_enforced": false,
+          "tool_allowlist": null,
+          "sensitive_tools": [],
+          "external_tools": [
+            "http.*"
+          ],
+          "hold_timeout_s": 300,
+          "rules": [
+            {
+              "rule_id": "exfil",
+              "tool": "*",
+              "data_class": {
+                "secrets": true,
+                "pii": [
+                  "email",
+                  "phone",
+                  "credit_card",
+                  "iban",
+                  "national_id"
+                ]
+              },
+              "effect": "block",
+              "reason": "No secrets or personal data to external endpoints"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

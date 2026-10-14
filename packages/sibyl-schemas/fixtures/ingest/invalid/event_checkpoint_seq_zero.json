@@ -1,0 +1,40 @@
+{
+  "schema": "sibyl-event/1",
+  "event_id": "019276a2-0c4d-7e5f-8a61-2b3c4d5e6f70",
+  "type": "checkpoint",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "task_id": "019276a0-9c1d-7e3f-9a52-1b2c3d4e5f60",
+  "call_id": null,
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "7a1b2c3d4e5f6071",
+  "ts": "2026-10-09T09:14:35.001Z",
+  "observed_at": "2026-10-09T09:14:36.420Z",
+  "source": "sdk",
+  "emitter_id": "sdk:quote-worker-3:7719",
+  "seq": 1042,
+  "capture_mode": "full",
+  "redaction_profile": {
+    "id": "secrets_only",
+    "version": 1,
+    "rules_fired": [],
+    "secrets_scrubbed": 0
+  },
+  "policy_state": {
+    "state": "fresh",
+    "policy_version": 42,
+    "fail_mode": "open"
+  },
+  "attrs": {
+    "checkpoint_id": "019276a2-0c4d-7e5f-8a61-2b3c4d5e6f71",
+    "seq": 0,
+    "step_index": 3,
+    "step_name": "price_quote",
+    "state_bytes": 9120,
+    "state_schema": "app:quote_pipeline/v3",
+    "completed_count": 3,
+    "pending_count": 2,
+    "side_effects_count": 1,
+    "prev_checkpoint_id": "019276a1-0000-7000-8000-000000000001"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "schema": "sibyl-ingest-response/1",
+  "batch_id": "019276c0-0000-7000-8000-000000000002",
+  "accepted": 3,
+  "rejected": [],
+  "warnings": [],
+  "replayed": true
+}

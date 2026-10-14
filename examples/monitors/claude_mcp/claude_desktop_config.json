@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "sibyl": {
+      "command": "sibyl-mcp",
+      "args": [],
+      "env": {
+        "SIBYL_API_URL": "https://sibyl.example.com",
+        "SIBYL_MONITOR_KEY": "<paste the monitor key here; never commit it>"
+      }
+    }
+  }
+}

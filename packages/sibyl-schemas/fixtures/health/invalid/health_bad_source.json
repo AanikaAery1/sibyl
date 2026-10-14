@@ -1,0 +1,88 @@
+{
+  "schema": "sibyl-health/1",
+  "health_snapshot_id": "019276a2-7f00-7000-8000-000000000042",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "computed_at": "2026-10-09T09:15:50.000Z",
+  "window": {
+    "start": "2026-10-09T09:10:50.000Z",
+    "end": "2026-10-09T09:15:50.000Z",
+    "grain_s": 300
+  },
+  "score": 42,
+  "status": "degraded",
+  "provisional": {
+    "flag": false,
+    "events_seen": 1840,
+    "events_needed": 50,
+    "observation_coverage": 1.0
+  },
+  "factors": [
+    {
+      "rule": "error_rate",
+      "weight": 0.3,
+      "penalty": 30,
+      "value": 0.12,
+      "threshold": 0.05,
+      "direction": "above",
+      "explanation": "Error rate 12% over the last 5 minutes (threshold 5%)",
+      "evidence": "/traces?agent=c010&error=true",
+      "kind": "detected"
+    },
+    {
+      "rule": "ratelimit_proximity",
+      "weight": 0.15,
+      "penalty": 10,
+      "value": 0.045,
+      "threshold": 0.1,
+      "direction": "below",
+      "explanation": "Rate-limit headroom 4.5% (threshold 10%)",
+      "kind": "leading",
+      "horizon_s": 900
+    },
+    {
+      "rule": "fallback_pressure",
+      "weight": 0.15,
+      "penalty": 18,
+      "value": 0.34,
+      "threshold": 0.2,
+      "direction": "above",
+      "explanation": "Inline fallbacks on 34% of calls (threshold 20%)",
+      "kind": "leading",
+      "horizon_s": 900
+    }
+  ],
+  "horizons": {
+    "15m": {
+      "probability_band": "0.60",
+      "predicted_failure_mode": "provider_outage",
+      "source": "rules/v1",
+      "confidence": "low",
+      "contributing_rules": [
+        "ratelimit_proximity",
+        "fallback_pressure"
+      ]
+    },
+    "1h": {
+      "probability_band": "0.25",
+      "predicted_failure_mode": "latency_degradation",
+      "source": "ml/v1",
+      "confidence": "low",
+      "contributing_rules": [
+        "fallback_pressure"
+      ]
+    },
+    "24h": {
+      "probability_band": "0.05",
+      "predicted_failure_mode": null,
+      "source": "rules/v1",
+      "confidence": "low",
+      "contributing_rules": []
+    }
+  },
+  "predicted_failure_mode": "provider_outage",
+  "recommended_action": "reroute_to_fallback",
+  "feature_snapshot_ref": "fs_019276a2-7e00-7000-8000-000000000042",
+  "policy_version": 42,
+  "routing_state": "degraded"
+}

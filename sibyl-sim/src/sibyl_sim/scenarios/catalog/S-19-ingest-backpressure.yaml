@@ -1,0 +1,27 @@
+# S-19 Ingest backpressure (ML §8.2): ingest answers 429 for meridian for 90 s (its own
+# tenant_rate_limit path, Retry-After included). SDK agents keep their batches and retry
+# (A3: in-memory retry); nothing is lost or stored twice.
+id: S-19
+title: Ingest backpressure 90 s, SDK agents retry
+gate_class: none
+duration_s: 300
+tenants:
+  meridian:
+    agents:
+      dispatch-planner: sdk_steady   # tier 1
+      collections-bot: sdk_steady    # tier 2
+      faq-bot: sdk_steady            # tier 3
+chaos:
+  - {at: 60, ingest: meridian, pause_s: 90}
+labels: []
+expect:
+  - no_duplicates: {agent: dispatch-planner}
+  - no_duplicates: {agent: collections-bot}
+  - no_duplicates: {agent: faq-bot}
+  - event_seen: {agent: dispatch-planner, event_type: observation.gap}
+    note: "observation.gap(cause=ingest_backpressure) from the SDK, closed by the replay"
+  - observed: {tenant: meridian}
+  - health: {agent: dispatch-planner, status: [healthy]}
+  - quiet: {tenant: meridian}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}

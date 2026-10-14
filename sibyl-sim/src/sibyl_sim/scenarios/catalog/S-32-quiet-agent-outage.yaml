@@ -1,0 +1,30 @@
+# S-32 Hard outage minutes after an agent starts serving (the wave-3 live detection gap).
+# Live (demo stack, 2026-10-11): kb-summarizer, created 06:43:15, served 148 healthy calls and
+# hit a 100 % 503 outage at 06:46. Its failure floors fired but it was still provisional (under a
+# day old and under 30 active minutes, ML §3.8), so the band was clamped to `watch` (score 30),
+# alerts stayed `warning` and no saga started. Fix: a detected failure floor lifts the cold-start
+# cap once the agent has proven a working baseline (>= min_requests_1h healthy calls in the
+# hour, or older than min_age_days, plan present, rollups fresh). Here kb-summarizer has no
+# history (warm-up 0), serves ~70 healthy calls in its first 70 s, then fails hard: provisional
+# by the young-agent rule, proven by its traffic. Before the fix this ran to `watch` with no
+# failover. Gate: failed band, a rule-actor failover, TTD within the tier-3 target.
+id: S-32
+title: Hard outage minutes after a tier-3 agent starts serving (cold-start cap lifted)
+gate_class: hard
+duration_s: 240
+warmup_agents:
+  kb-summarizer: 0
+tenants:
+  meridian:
+    agents:
+      kb-summarizer: hot        # tier 3, openai-stub, 1 rps
+chaos:
+  - {at: 70, double: openai-stub, agents: [kb-summarizer], set: {outage: true}}
+labels:
+  - {agent: kb-summarizer, kind: onset, t: 70, failure_mode: provider_outage}
+expect:
+  - detect: {agent: kb-summarizer, rule: [R3, R1], by_t: 190}
+  - health: {agent: kb-summarizer, status: [failed], when: ever}
+  - action: {agent: kb-summarizer, to_state: failed_over, actor: rule, by_t: 240}
+  - explainable: {}
+  - quiet: {tenant: northstar}

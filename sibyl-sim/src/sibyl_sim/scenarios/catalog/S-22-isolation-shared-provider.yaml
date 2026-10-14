@@ -1,0 +1,40 @@
+# S-22 Tenant isolation, shared provider (ML §8.2; CRITICAL gate): openai-stub fails only for
+# meridian's credentials. Both tenants call the same double through the same gateway;
+# meridian detects and opens its own provider incident, northstar sees nothing.
+id: S-22
+title: Tenant isolation, provider fails only for meridian keys
+smoke: true
+gate_class: hard
+duration_s: 150
+tenants:
+  meridian:
+    agents:
+      dispatch-planner: busy    # tier 1, openai-stub
+      kb-summarizer: busy       # tier 3, openai-stub
+      route-optimizer: busy     # tier 2, openai-stub
+  northstar:
+    agents:
+      intake-assistant: busy    # tier 2, openai-stub
+      claims-coder: busy        # tier 3, openai-stub
+chaos:
+  - {at: 20, double: openai-stub, tenants: [meridian], set: {error_rate: 1.0, error_statuses: [503]}}
+labels:
+  - {agent: dispatch-planner, kind: onset, t: 20, failure_mode: provider_outage}
+  - {agent: kb-summarizer, kind: onset, t: 20, failure_mode: provider_outage}
+  - {agent: route-optimizer, kind: onset, t: 20, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: billing-agent, kind: onset, t: 20, failure_mode: provider_outage}
+  - {agent: quote-assistant, kind: onset, t: 20, failure_mode: provider_outage}
+  - {agent: support-triage, kind: onset, t: 20, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: escalation-router, kind: onset, t: 20, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: receipt-ocr, kind: onset, t: 20, failure_mode: provider_outage}
+  - {agent: shift-scheduler, kind: onset, t: 20, failure_mode: provider_outage}
+expect:
+  - detect: {agent: dispatch-planner, rule: [R3, R1], by_t: 90}
+  - provider_incident: {provider: openai-stub, min_agents: 2, by_t: 150}
+  - isolated: {tenant: meridian}
+  - isolated: {tenant: northstar}
+  - observed: {tenant: northstar}
+  - quiet: {tenant: northstar}
+    note: "no provider_incident in northstar: incidents are scoped per tenant"
+  - scores_at_least: {tenant: northstar, min: 90}
+  - explainable: {}

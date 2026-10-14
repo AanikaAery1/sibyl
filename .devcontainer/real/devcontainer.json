@@ -1,0 +1,34 @@
+// Sibyl real deployment in a codespace: the full stack (Postgres, API, ingest, worker, gateway,
+// console, Caddy TLS, dex OIDC), no simulator, ready for your agents.
+// Open: https://codespaces.new/MK-JKC/sibyl?devcontainer_path=.devcontainer/real/devcontainer.json
+// Local: `make up` (docs/setup/REAL.md).
+{
+  "name": "Sibyl real deployment",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.13-bookworm",
+  "hostRequirements": { "cpus": 4, "memory": "8gb", "storage": "32gb" },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": { "moby": true },
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+  },
+  "containerEnv": {
+    "UV_SYSTEM_CERTS": "1",
+    "npm_config_cafile": "/etc/ssl/certs/ca-certificates.crt"
+  },
+  // uv, jq, htpasswd (bcrypt for the admin password), then the Python workspace for the SDK.
+  "postCreateCommand": "bash .devcontainer/real/post-create.sh",
+  // Bring Sibyl up (first time: builds images, ~10 minutes) with Codespaces URLs; idempotent.
+  "postAttachCommand": "bash .devcontainer/real/start.sh",
+  "forwardPorts": [8443, 8444, 8445],
+  "portsAttributes": {
+    // Caddy serves TLS with its local CA; the Codespaces forwarder talks https to it and serves
+    // the browser a GitHub certificate. Host is rewritten to localhost; Caddy restores the public
+    // origin for the console (caddy/Caddyfile.real, SIBYL_PUBLIC_AUTHORITY).
+    "8443": { "label": "Sibyl console + API", "protocol": "https", "onAutoForward": "openBrowser" },
+    "8444": { "label": "Sibyl gateway", "protocol": "https", "onAutoForward": "silent" },
+    "8445": { "label": "Sibyl ingest", "protocol": "https", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["docs/setup/REAL.md"] },
+    "vscode": { "extensions": ["ms-python.python", "charliermarsh.ruff"] }
+  }
+}

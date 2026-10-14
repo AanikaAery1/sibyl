@@ -1,0 +1,29 @@
+# S-05 Cost spike (ML §8.2; ROADMAP M3 3.3): tokens x6 on one tier-3 agent. L4 must warn
+# before R5. Spend is priced at ingest from the seeded model prices (claude-sonnet-5: 3 USD in,
+# 15 USD out per 1M tokens). qa-expert §2: "scenario sets budget so this lands at t0+9 min": the
+# hour of warm-up costs ~0.70 USD, the x6 calls ~0.007 USD each at ~1/s, so a 4.37 USD month
+# crosses at t~543 (onset 540; tests/scenarios/test_budget_calibration.py recomputes it).
+# Compressed time: at any budget a 15-minute run can reach, even the warm-up's burn projects
+# over budget within 24 h, so L4 is up at the first evaluation, ~9 min before the breach.
+id: S-05
+title: Cost spike, tokens x6, tier 3
+requires: [P]
+gate_class: ramp
+duration_s: 900
+tenants:
+  meridian:
+    agents:
+      email-drafter: hot   # tier 3, anthropic-stub, seeded budget 300 USD/month
+budgets:
+  email-drafter: "4.3700"
+chaos:
+  - {at: 30, double: anthropic-stub, agents: [email-drafter], set: {token_multiplier: 6}}
+labels:
+  - {agent: email-drafter, kind: onset, t: 540, failure_mode: budget_exhaustion}
+expect:
+  - predict: {agent: email-drafter, rule: L4, by_t: 240}
+  - detect: {agent: email-drafter, rule: R5, by_t: 900}
+  - recommended_action: {agent: email-drafter, action: throttle}
+  - action: {agent: email-drafter, to_state: quarantined, actor: policy, by_t: 900}
+  - explainable: {}
+  - quiet: {tenant: northstar}

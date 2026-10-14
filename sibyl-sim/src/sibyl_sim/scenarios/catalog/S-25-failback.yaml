@@ -1,0 +1,28 @@
+# S-25 Fail-back (ML §8.2; ROADMAP M2 2.8, reduced by A4): S-01 recovers at +10 min; after 5
+# healthy minutes the probe runs and the agent returns to active in one step.
+id: S-25
+title: Fail-back after recovery, tier 2 (probe -> active)
+requires: [S]
+gate_class: hard
+duration_s: 1200
+health_poll_s: 30
+# B35: tier 2 inline-falls back to its vaulted alt provider, which fully masks the outage and
+# starts no saga (nothing to fail back); the agent opts out per request (X-Sibyl-Fallback: none).
+profiles:
+  busy_no_inline: {rps: 0.5, fallback: none}
+tenants:
+  meridian:
+    agents:
+      support-triage: busy_no_inline
+chaos:
+  - {at: 30, double: openai-stub, agents: [support-triage], set: {outage: true}}
+  - {at: 630, double: openai-stub, agents: [support-triage], set: {outage: false}}
+labels:
+  - {agent: support-triage, kind: onset, t: 30, failure_mode: provider_outage}
+  - {agent: support-triage, kind: recovery, t: 630}
+expect:
+  - action: {agent: support-triage, to_state: failed_over, actor: rule, by_t: 120}
+  - action: {agent: support-triage, to_state: active, by_t: 1200}
+  - explainable: {}
+personas:
+  - {at: 990, persona: admin, do: fail_back, agent: support-triage}

@@ -1,0 +1,16 @@
+# Skip reasons ci/skip_guard.py accepts (Python regexes, matched with re.search).
+# Anything else fails the CI run: a skipped DB or Docker test is a hidden red (G0 F1).
+# Add a reason only when the skip is by design, with a comment saying why.
+
+# The image CA-leak scan needs a TLS-inspection CA to look for; without one there is none.
+no SIBYL_EXTRA_CA_FILE
+
+# Real-dex login + step-up test is opt-in (pulls and runs a dex container); run it with SIBYL_DEX_TESTS=1.
+set SIBYL_DEX_TESTS=1 with a working docker
+
+# The full demo-stack bring-up (ops/demo/up.sh builds four images and runs every service) is
+# opt-in; the chair runs it with SIBYL_REQUIRE_DOCKER=1.
+opt-in: set SIBYL_REQUIRE_DOCKER=1 to bring up the full demo stack
+
+# Real-provider Sentinel evaluation calls a vendor with a real key (docs/council/build/SENTINEL-EVAL.md).
+real-provider Sentinel eval is opt-in: set SIBYL_SENTINEL_EVAL=1

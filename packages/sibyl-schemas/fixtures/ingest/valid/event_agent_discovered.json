@@ -1,0 +1,36 @@
+{
+  "schema": "sibyl-event/1",
+  "event_id": "019276a3-000a-7000-8000-00000000000a",
+  "type": "agent.discovered",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c099",
+  "task_id": null,
+  "call_id": null,
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "7a1b2c3d4e5f6072",
+  "ts": "2026-10-09T09:14:35.001Z",
+  "observed_at": "2026-10-09T09:14:36.420Z",
+  "source": "gateway",
+  "emitter_id": "gateway:gw-1:4211",
+  "seq": 1043,
+  "capture_mode": "full",
+  "redaction_profile": {
+    "id": "secrets_only",
+    "version": 1,
+    "rules_fired": [],
+    "secrets_scrubbed": 0
+  },
+  "policy_state": {
+    "state": "fresh",
+    "policy_version": 42,
+    "fail_mode": "open"
+  },
+  "attrs": {
+    "discovered_via": "gateway_header",
+    "candidate": "invoice-bot",
+    "candidate_hash": "3f9a1c0e7b2d4a68",
+    "resolved_agent_id": "0192767f-0000-7000-8000-00000000c099",
+    "fail_mode_applied": "open",
+    "server_address": "api.openai.com"
+  }
+}

@@ -1,0 +1,22 @@
+# S-14 Model deprecation (ML §8.2): the primary model answers 404 model_not_found; other
+# models on the same provider still work. Detection on R1/R3; the saga picks
+# alt_model_same_provider on every tier.
+id: S-14
+title: Model deprecation, primary model 404, tier 2
+gate_class: hard
+duration_s: 180
+tenants:
+  meridian:
+    agents:
+      route-optimizer: busy   # tier 2, openai-stub, primary gpt-5.4
+chaos:
+  - {at: 30, double: openai-stub, agents: [route-optimizer], set: {missing_models: [gpt-5.4]}}
+labels:
+  - {agent: route-optimizer, kind: onset, t: 30, failure_mode: model_deprecation}
+expect:
+  - detect: {agent: route-optimizer, rule: [R3, R1], by_t: 120}
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}
+  - action: {agent: route-optimizer, to_state: failed_over, by_t: 180}
+    note: "kind alt_model_same_provider (gpt-5-mini)"

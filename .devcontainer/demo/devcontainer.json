@@ -1,0 +1,27 @@
+// Sibyl demo: the console with dummy data and the scripted scenario (no Docker, no database).
+// Open: https://codespaces.new/MK-JKC/sibyl?devcontainer_path=.devcontainer/demo/devcontainer.json
+// Local: `make demo` (docs/setup/DEMO.md).
+{
+  "name": "Sibyl demo (dummy data)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "hostRequirements": { "cpus": 2, "memory": "4gb" },
+  "containerEnv": {
+    "NEXT_TELEMETRY_DISABLED": "1",
+    // The repository's console/.npmrc names a corporate CA file; in Codespaces use the system bundle.
+    "npm_config_cafile": "/etc/ssl/certs/ca-certificates.crt"
+  },
+  // Install and build once when the codespace is created (the build takes a minute or two).
+  "postCreateCommand": "cd console && npm ci --no-audit --no-fund",
+  // Serve on every start. console.sh derives the public origin from CODESPACE_NAME and puts a small
+  // origin proxy in front, so the console's CSRF check accepts the forwarded https URL.
+  "postAttachCommand": "make demo",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "Sibyl console (demo)", "onAutoForward": "openBrowser" },
+    "3001": { "label": "console (behind the origin proxy)", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["docs/setup/DEMO.md"] },
+    "vscode": { "extensions": ["dbaeumer.vscode-eslint", "bradlc.vscode-tailwindcss"] }
+  }
+}

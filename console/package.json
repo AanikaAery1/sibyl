@@ -1,0 +1,46 @@
+{
+  "name": "sibyl-console",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Sibyl web console: Next.js App Router + BFF. Demo-data mode by default.",
+  "engines": {
+    "node": ">=20.18"
+  },
+  "scripts": {
+    "dev": "next dev --port ${PORT:-3000}",
+    "build": "next build",
+    "start": "next start --port ${PORT:-3000}",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint -c lint/eslint.flat.mjs --max-warnings 0 .",
+    "gen:api": "openapi-typescript ../openapi/sibyl-api.v1.yaml -o lib/api/schema.gen.ts && node scripts/gen-paths.mjs",
+    "test:e2e": "playwright test --project=e2e --project=a11y",
+    "test:visual": "playwright test --project=visual",
+    "test:visual:update": "playwright test --project=visual --update-snapshots",
+    "test:budget": "node scripts/check-budgets.mjs",
+    "test": "npm run typecheck && npm run lint && npm run test:unit && npm run test:e2e",
+    "screenshots": "node scripts/screenshots.mjs",
+    "test:unit": "playwright test -c playwright.unit.config.ts",
+    "test:live": "playwright test -c playwright.live.config.ts"
+  },
+  "dependencies": {
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "swr": "2.5.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.0",
+    "openapi-typescript": "7.13.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,35 @@
+# S-07 Flapping provider (ML §8.2, ROADMAP M2 2.4): 2 min failing / 2 min healthy x 6.
+# Wave 1 gates the health engine's half: one excursion from healthy for the whole flap
+# (hysteresis, cooldown, flap pin). Exactly one automated failover is the saga's half.
+id: S-07
+title: Flapping provider, tier 2, exactly one transition
+gate_class: hard
+duration_s: 1500
+health_poll_s: 30
+# B35: tier 2 inline-falls back to its vaulted alt provider, which fully masks the outage and
+# starts no saga; the agent opts out per request (X-Sibyl-Fallback: none) so the flap is seen
+# and the saga's half (exactly one failover) runs.
+profiles:
+  busy_no_inline: {rps: 0.5, fallback: none}
+tenants:
+  meridian:
+    agents:
+      route-optimizer: busy_no_inline    # tier 2, openai-stub
+chaos:
+  - at: 60
+    double: openai-stub
+    agents: [route-optimizer]
+    set: {outage: true}
+    repeat: {every_s: 240, times: 6, then_after_s: 120, then: {outage: false}}
+labels:
+  - {agent: route-optimizer, kind: onset, t: 60, failure_mode: provider_outage}
+  - {agent: route-optimizer, kind: recovery, t: 1500}
+expect:
+  - detect: {agent: route-optimizer, rule: [R3, R1], by_t: 150}
+  - band_episodes: {agent: route-optimizer, exactly: 1}
+    note: "hysteresis_out / flap pin keep the band down across the flap (no fail-back inside it)"
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}
+  - single_failover: {agent: route-optimizer}
+  - no_action: {agent: route-optimizer, states: [failing_back, active]}

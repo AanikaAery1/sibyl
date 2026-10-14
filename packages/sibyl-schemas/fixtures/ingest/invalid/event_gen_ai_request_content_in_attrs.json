@@ -1,0 +1,158 @@
+{
+  "schema": "sibyl-event/1",
+  "event_id": "019276a1-5b3c-7d2e-8f41-0a1b2c3d4e5f",
+  "type": "gen_ai.request",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "task_id": "019276a0-9c1d-7e3f-9a52-1b2c3d4e5f60",
+  "call_id": "019276a1-4a2b-7c1d-8e30-f1e2d3c4b5a6",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
+  "parent_span_id": "53995c3f42cd8ad8",
+  "ts": "2026-10-09T09:14:32.418Z",
+  "observed_at": "2026-10-09T09:14:33.102Z",
+  "source": "gateway",
+  "emitter_id": "gateway:gw-1:4211",
+  "seq": 88213,
+  "capture_mode": "full",
+  "redaction_profile": {
+    "id": "secrets_only",
+    "version": 1,
+    "rules_fired": [
+      "secrets.bearer_header"
+    ],
+    "secrets_scrubbed": 1
+  },
+  "policy_state": {
+    "state": "fresh",
+    "policy_version": 42,
+    "fail_mode": "open",
+    "snapshot_age_s": 7.4
+  },
+  "ingest": {
+    "normaliser_version": "normaliser/1.3.0",
+    "semconv_version": "1.37.0",
+    "instrumentor": "gateway/0.1.0",
+    "raw_span_refs": [
+      {
+        "source": "sdk",
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "53995c3f42cd8ad8",
+        "ref": "blob://0192767f-0000-7000-8000-00000000a001/2026-10-09/4bf92f3577b34da6a3ce929d0e0e4736/53995c3f42cd8ad8.raw.bin"
+      },
+      {
+        "source": "gateway",
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "ref": "blob://0192767f-0000-7000-8000-00000000a001/2026-10-09/4bf92f3577b34da6a3ce929d0e0e4736/00f067aa0ba902b7.raw.bin"
+      }
+    ]
+  },
+  "attrs": {
+    "operation": "chat",
+    "provider": "openai",
+    "request_model": "gpt-5-mini",
+    "response_model": "gpt-5-mini-2026-08-01",
+    "response_id": "chatcmpl-9x2Kq",
+    "status": "ok",
+    "http_status": 200,
+    "latency_ms": 1843.2,
+    "ttfb_ms": 412.0,
+    "streamed": true,
+    "usage": {
+      "input_tokens": 2310,
+      "output_tokens": 418,
+      "cached_input_tokens": 1024,
+      "source": "provider"
+    },
+    "cost_usd": 0.001419,
+    "cost_source": "prices/2026-10-01",
+    "finish_reasons": [
+      "tool_calls"
+    ],
+    "request": {
+      "temperature": 0.2,
+      "max_tokens": 1024,
+      "tool_definitions_count": 4,
+      "output_type": "text"
+    },
+    "tool_calls_requested": [
+      {
+        "id": "call_8f1",
+        "name": "lookup_order"
+      }
+    ],
+    "context": {
+      "model_context_limit": 128000,
+      "utilisation": 0.018
+    },
+    "ratelimit": {
+      "limit_requests": 10000,
+      "remaining_requests": 612,
+      "reset_requests_ms": 4200,
+      "limit_tokens": 2000000,
+      "remaining_tokens": 91000,
+      "reset_tokens_ms": 4200,
+      "headroom": 0.0455
+    },
+    "retry": {
+      "attempt": 2,
+      "inline_fallback_used": true,
+      "fallback_target": {
+        "provider": "openai",
+        "model": "gpt-5-mini"
+      },
+      "breaker_state": "half_open"
+    },
+    "route": {
+      "decision": "inline_fallback",
+      "reason": "primary 429 on attempt 1; snapshot inline_fallback=true (tier 3)",
+      "from": {
+        "provider": "openai",
+        "model": "gpt-5.4"
+      },
+      "to": {
+        "provider": "openai",
+        "model": "gpt-5-mini"
+      }
+    },
+    "server": {
+      "address": "api.openai.com",
+      "port": 443
+    },
+    "conversation_id": "conv_7731",
+    "prompt_version": "sha256:3e1a9c0b",
+    "payload": {
+      "ref": "blob://0192767f-0000-7000-8000-00000000a001/2026-10-09/4bf92f3577b34da6a3ce929d0e0e4736/53995c3f42cd8ad8.bin",
+      "sha256": "9b74c9897bac770ffc029102a200c5de3c5d87d6b8d7a3c2f5a0b1c2d3e4f5a6",
+      "bytes": 18422,
+      "content_type": "application/vnd.sibyl.genai-content+json",
+      "parts": [
+        "input_messages",
+        "output_messages",
+        "system_instructions",
+        "tool_definitions"
+      ],
+      "redaction_profile": {
+        "id": "secrets_only",
+        "version": 1,
+        "rules_fired": [
+          "secrets.bearer_header"
+        ],
+        "secrets_scrubbed": 1
+      }
+    },
+    "content_hashes": {
+      "input": "0c3a2e1f9d8b7a6c5e4d3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c",
+      "output": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+    },
+    "output_chars": 1612,
+    "eval_sample": false,
+    "contributions": [
+      "sdk",
+      "gateway"
+    ],
+    "merge_state": "complete",
+    "prompt": "Draft a quote"
+  }
+}

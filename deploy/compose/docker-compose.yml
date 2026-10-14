@@ -1,0 +1,515 @@
+# Sibyl Phase 1 stack (D4: localhost now, cloud later; ARCHITECTURE 2, ADR-3/4/5/8).
+#
+#   cd deploy/compose
+#   ./init-env.sh                                  # env/*.env + env/secrets/* (0700 dir)
+#   docker compose run --rm bootstrap              # once: roles + role passwords (admin creds)
+#   docker compose up -d --wait                    # postgres, dex, caddy, migrate, api, ingest,
+#                                                  #   worker, gateway, console
+#   docker compose --profile sim up -d             # + sibyl-sim on its own port (R32; dev-only, R46)
+#   ops/demo/up.sh                                 # all of the above in one go, for the demo
+#
+# Entry points (all TLS via Caddy's internal CA, loopback only):
+#   https://localhost:${SIBYL_PORT_HTTPS}        console (+ /api/bff/*), /api/* (api), /dex/* (OIDC)
+#   https://localhost:${SIBYL_PORT_GATEWAY_TLS}  gateway /v1/* (OpenAI-compatible)
+#   https://localhost:${SIBYL_PORT_INGEST_TLS}   ingest /v1/otlp/*, /v1/events
+#   http://localhost:${SIBYL_PORT_SIM}           sibyl-sim control (profile sim)
+#   https://localhost:${SIBYL_PORT_SIM_DOUBLES}  sibyl-sim provider doubles (sim dev CA, profile sim)
+#
+# Local demo = a `live` deployment (env/control.env.example): D20 break-glass keys only exist
+# as live keys. SIBYL_DEMO=1 keeps it safe: credentials and snapshots for sim doubles only (R55).
+#
+# Rules:
+# * No secret literals and no secrets in env files. Key material and passwords are compose
+#   file secrets, granted per service (matrix below, tested in ci/tests/test_secrets.py); the
+#   image entrypoint exports /run/secrets/<VAR> as <VAR>. Env files hold tunables only.
+# * Networks (L8): `edge` (Caddy and what it fronts) and `data` (Postgres and the three
+#   control processes). The gateway, dex, console and sim cannot reach Postgres. A third,
+#   internal `probe` network holds only the worker and the sim, so worker credential probes
+#   (B14) reach the doubles at `sim` without the worker joining `edge`.
+# * Caddy has a pinned address on `edge`; api, ingest and gateway trust X-Forwarded-For only
+#   from it (SIBYL_TRUSTED_PROXIES, M4). The console (BFF) is pinned too and the api also trusts
+#   it, since it forwards the client address Caddy saw. Docker assigns dynamic edge addresses
+#   only from SIBYL_EDGE_IP_RANGE (the upper half), so nothing can take the pinned .10/.11.
+#   Worktree slots get their own subnet and range (ci/worktree.sh).
+# * Admin (superuser) credentials reach only postgres and the one-shot `bootstrap` (profile
+#   bootstrap), never the routine `migrate` (M8).
+# * Images pinned by multi-arch digest (L10); only D15-permissive images.
+#
+# Secret matrix (source -> services). Change it here and in ci/tests/test_secrets.py together.
+#   postgres_password      postgres, bootstrap        kek                  api, ingest (B7), worker
+#   db_password_migrate    bootstrap, migrate         key_pepper           api, ingest, gateway (B12)
+#   db_password_app        bootstrap, api             snapshot_signing_key api
+#   db_password_ingest     bootstrap, ingest          ledger_signing_key   worker
+#   db_password_worker     bootstrap, worker          anchor_signing_key   worker
+#   session_secret         api                        oidc_client_secret   api, dex
+#   subject_salt           api, ingest                scrub_salt           ingest, gateway
+#   dex_api_client_secret  dex                        dex_persona_hash     dex
+#   gateway_tenant_keys    gateway                    gateway_ingest_key   gateway (B12)
+#   sim_gateway_key, sim_ingest_key  sibyl-sim
+# Public config (not secret): snapshot_pin -> gateway (B12: the first snapshot signing key,
+# written by init-env.sh from the snapshot_signing_key seed); upstream_ca -> gateway (optional
+# operator CA bundle, SIBYL_UPSTREAM_CA_HOST_FILE).
+
+name: ${COMPOSE_PROJECT_NAME:-sibyl}
+
+x-hardened: &hardened
+  init: true
+  read_only: true
+  tmpfs: ["/tmp"]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+
+x-control: &control
+  <<: *hardened
+  image: sibyl/control:${SIBYL_VERSION:-dev}
+  restart: unless-stopped
+  env_file:
+    - path: ${SIBYL_ENV_DIR:-./env}/control.env
+      required: true
+  volumes:
+    - blobstore:/var/lib/sibyl/blob
+  depends_on:
+    postgres:
+      condition: service_healthy
+    migrate:
+      condition: service_completed_successfully
+
+x-db-env: &db-env
+  SIBYL_DB_HOST: postgres
+  SIBYL_DB_PORT: "5432"
+  SIBYL_DB_NAME: ${SIBYL_DB_NAME:-sibyl}
+  SIBYL_PUBLIC_URL: ${SIBYL_PUBLIC_URL:-https://localhost:8443}
+  SIBYL_OIDC_ISSUER: ${SIBYL_PUBLIC_URL:-https://localhost:8443}/dex
+  SIBYL_OIDC_INTERNAL_URL: http://dex:5556/dex
+  SIBYL_BLOB_BACKEND: fs
+  SIBYL_BLOB_ROOT: /var/lib/sibyl/blob
+  # S3-compatible blob store instead: set SIBYL_BLOB_BACKEND: s3, uncomment, and grant the key
+  # pair / session token as file secrets (targets SIBYL_S3_ACCESS_KEY_ID, _SECRET_ACCESS_KEY,
+  # _SESSION_TOKEN), never as values here.
+  # SIBYL_S3_ENDPOINT: ${SIBYL_S3_ENDPOINT:-}
+  # SIBYL_S3_BUCKET: ${SIBYL_S3_BUCKET:-}
+  # SIBYL_S3_REGION: ${SIBYL_S3_REGION:-us-east-1}
+  # SIBYL_S3_ACCESS_KEY_ID: (file secret)
+  # SIBYL_S3_SECRET_ACCESS_KEY: (file secret)
+  # SIBYL_S3_SESSION_TOKEN: (file secret, optional)
+  # SIBYL_S3_PREFIX: ${SIBYL_S3_PREFIX:-}
+  # SIBYL_S3_PATH_STYLE: ${SIBYL_S3_PATH_STYLE:-true}
+  # SIBYL_S3_ALLOW_HTTP: ${SIBYL_S3_ALLOW_HTTP:-false}
+
+# Lane S saga gates, read by the api (incident views) and the worker (saga, failback): the D36
+# predicted-failover band stays "0.90" until sibyl-sim clears the precision/recall floors, and
+# the Phase 1.5 canary failback ramp stays off.
+x-saga-env: &saga-env
+  SIBYL_PREDICTED_AUTOMATION_BAND: ${SIBYL_PREDICTED_AUTOMATION_BAND:-0.90}
+  SIBYL_FAILBACK_RAMP: ${SIBYL_FAILBACK_RAMP:-false}
+
+x-health: &health
+  interval: 10s
+  timeout: 3s
+  retries: 5
+  start_period: 20s
+
+services:
+  postgres:
+    image: postgres:17.6-bookworm@sha256:f3bd19c606e442c3d7bdfa8002e03fe260a1023351e0ea4598032022b68dd6e3
+    restart: unless-stopped
+    shm_size: 256m
+    # The entrypoint chowns PGDATA and drops to the postgres user with gosu.
+    read_only: true
+    tmpfs: ["/tmp", "/var/run/postgresql"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETGID", "SETUID"]
+    env_file:
+      - path: ${SIBYL_ENV_DIR:-./env}/postgres.env
+        required: true
+    environment:
+      POSTGRES_DB: ${SIBYL_DB_NAME:-sibyl}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C --data-checksums"
+    secrets: [postgres_password]
+    # WAL archiving / PITR (pgBackRest, D18) is lane O's wave-2 work; until then
+    # ops/backup/backup.sh takes logical dumps. See ops/runbooks/backup-restore.md.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${SIBYL_PORT_PG:-5434}:5432"
+    networks: [data]
+    healthcheck:
+      <<: *health
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${SIBYL_DB_NAME:-sibyl} -h 127.0.0.1"]
+
+  dex:
+    image: ghcr.io/dexidp/dex:v2.44.0@sha256:5d0656fce7d453c0e3b2706abf40c0d0ce5b371fb0b73b3cf714d05f35fa5f86
+    restart: unless-stopped
+    <<: *hardened
+    env_file:
+      - path: ${SIBYL_ENV_DIR:-./env}/dex.env
+        required: true
+    environment:
+      SIBYL_PUBLIC_URL: ${SIBYL_PUBLIC_URL:-https://localhost:8443}
+    secrets:
+      - { source: oidc_client_secret, target: DEX_CONSOLE_CLIENT_SECRET }
+      - { source: dex_api_client_secret, target: DEX_API_CLIENT_SECRET }
+      - { source: dex_persona_hash, target: DEX_PERSONA_HASH_B64 }
+    # Render the static config (issuer, redirect URIs, persona hash) from env, then serve.
+    entrypoint: ["/bin/sh", "/etc/sibyl-dex/render.sh"]
+    volumes:
+      - ./dex:/etc/sibyl-dex:ro
+    networks: [edge]
+    healthcheck:
+      <<: *health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5558/healthz"]
+
+  caddy:
+    image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    restart: unless-stopped
+    <<: *hardened
+    # The caddy binary carries cap_net_bind_service as a file capability; exec fails unless the
+    # bounding set keeps it, even though every listener here is above 1024.
+    cap_add: ["NET_BIND_SERVICE"]
+    environment:
+      SIBYL_PUBLIC_HOST: localhost
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "127.0.0.1:${SIBYL_PORT_HTTPS:-8443}:8443"
+      - "127.0.0.1:${SIBYL_PORT_GATEWAY_TLS:-8444}:8444"
+      - "127.0.0.1:${SIBYL_PORT_INGEST_TLS:-8445}:8445"
+    networks:
+      edge:
+        ipv4_address: ${SIBYL_CADDY_IP:-172.30.0.10}
+    healthcheck:
+      <<: *health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/healthz"]
+
+  bootstrap:
+    # One-shot, explicit (profile `bootstrap`): applies 0000 as the Postgres admin and sets the
+    # login-role passwords. The only container besides postgres that sees the admin password.
+    # Re-run after rotating any role password: `docker compose run --rm bootstrap`.
+    profiles: ["bootstrap"]
+    image: sibyl/control:${SIBYL_VERSION:-dev}
+    restart: "no"
+    <<: *hardened
+    env_file:
+      - path: ${SIBYL_ENV_DIR:-./env}/migrate.env
+        required: true
+    environment:
+      <<: *db-env
+      SIBYL_DB_USER: sibyl_migrate
+      SIBYL_PG_ADMIN_USER: postgres
+    secrets:
+      - { source: postgres_password, target: SIBYL_PG_ADMIN_PASSWORD }
+      - { source: db_password_migrate, target: SIBYL_DB_PASSWORD }
+      - { source: db_password_app, target: SIBYL_ROLE_PASSWORD_SIBYL_APP }
+      - { source: db_password_ingest, target: SIBYL_ROLE_PASSWORD_SIBYL_INGEST }
+      - { source: db_password_worker, target: SIBYL_ROLE_PASSWORD_SIBYL_WORKER }
+    command: ["python", "-m", "sibyl_control.migrate", "--dir", "/app/migrations", "up", "--target", "0"]
+    networks: [data]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  migrate:
+    # Routine schema migrations as sibyl_migrate (non-superuser). Fails with "bootstrap (0000)
+    # has not run" until `bootstrap` ran once.
+    image: sibyl/control:${SIBYL_VERSION:-dev}
+    restart: "no"
+    <<: *hardened
+    env_file:
+      - path: ${SIBYL_ENV_DIR:-./env}/migrate.env
+        required: true
+    environment:
+      <<: *db-env
+      SIBYL_DB_USER: sibyl_migrate
+    secrets:
+      - { source: db_password_migrate, target: SIBYL_DB_PASSWORD }
+    command: ["python", "-m", "sibyl_control.migrate", "--dir", "/app/migrations", "up"]
+    networks: [data]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *control
+    build:
+      context: ../..
+      dockerfile: deploy/docker/control.Dockerfile
+      args:
+        SIBYL_VERSION: ${SIBYL_VERSION:-dev}
+      secrets: [extra_ca]
+    environment:
+      <<: [*db-env, *saga-env]
+      SIBYL_DB_USER: sibyl_app
+      SIBYL_HTTP_PORT: "8000"
+      # list[str] setting: pydantic-settings parses it as JSON.
+      SIBYL_CONSOLE_ORIGINS: '["${SIBYL_PUBLIC_URL:-https://localhost:8443}"]'
+      # Caddy, and the console BFF, which forwards the client address Caddy saw (login and
+      # step-up rate limits, audited ip_hash).
+      SIBYL_TRUSTED_PROXIES: ${SIBYL_CADDY_IP:-172.30.0.10}/32,${SIBYL_CONSOLE_IP:-172.30.0.11}/32
+    secrets:
+      - { source: db_password_app, target: SIBYL_DB_PASSWORD }
+      - { source: kek, target: SIBYL_KEK }
+      - { source: key_pepper, target: SIBYL_KEY_PEPPER }
+      - { source: snapshot_signing_key, target: SIBYL_SNAPSHOT_SIGNING_KEY }
+      - { source: session_secret, target: SIBYL_SESSION_SECRET }
+      - { source: oidc_client_secret, target: SIBYL_OIDC_CLIENT_SECRET }
+      - { source: subject_salt, target: SIBYL_SUBJECT_SALT }
+    command: ["python", "-m", "sibyl_control.api"]
+    networks: [edge, data]
+    healthcheck:
+      <<: *health
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2).status != 200)"]
+
+  ingest:
+    <<: *control
+    environment:
+      <<: *db-env
+      SIBYL_DB_USER: sibyl_ingest
+      SIBYL_HTTP_PORT: "8001"
+      SIBYL_TRUSTED_PROXIES: ${SIBYL_CADDY_IP:-172.30.0.10}/32
+    secrets:
+      - { source: db_password_ingest, target: SIBYL_DB_PASSWORD }
+      - { source: kek, target: SIBYL_KEK }
+      - { source: key_pepper, target: SIBYL_KEY_PEPPER }
+      - { source: scrub_salt, target: SIBYL_SCRUB_SALT }
+      - { source: subject_salt, target: SIBYL_SUBJECT_SALT }
+    command: ["python", "-m", "sibyl_control.ingest"]
+    networks: [edge, data]
+    healthcheck:
+      <<: *health
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(urllib.request.urlopen('http://127.0.0.1:8001/healthz', timeout=2).status != 200)"]
+
+  worker:
+    <<: *control
+    environment:
+      <<: [*db-env, *saga-env]
+      SIBYL_DB_USER: sibyl_worker
+      SIBYL_HTTP_PORT: "8002"
+      # The ledger writer (migrate/ledger.py) reads the key from a file; the lowercase target is
+      # not exported by the entrypoint, so the seed never enters the environment.
+      SIBYL_LEDGER_SIGNING_KEY_FILE: /run/secrets/ledger_signing_key
+      # Same optional upstream trust bundle as the gateway, for the worker's own egress
+      # (Sentinel's provider calls, credential probes, monitor webhooks) behind a
+      # TLS-re-signing proxy. Unset = system trust.
+      SIBYL_UPSTREAM_CA_FILE: ${SIBYL_UPSTREAM_CA_HOST_FILE:+/etc/sibyl/upstream-ca.pem}
+    configs:
+      - { source: upstream_ca, target: /etc/sibyl/upstream-ca.pem }
+    secrets:
+      - { source: db_password_worker, target: SIBYL_DB_PASSWORD }
+      - { source: kek, target: SIBYL_KEK }
+      - { source: ledger_signing_key, target: ledger_signing_key }
+      # Signs audit anchors; must match the active `audit_anchor` signing_key row (lane U),
+      # registered from env/public/anchor_key.json by ops/demo/up.sh.
+      - { source: anchor_signing_key, target: SIBYL_ANCHOR_SIGNING_KEY }
+    # One BlobStore for api, ingest and worker (fs backend): the worker writes exports, audit
+    # anchors and the erasure ledger (ledger/erasure/, signed create-only entries + signed head,
+    # lane U) that the api serves and backup/restore read (ops/runbooks/backup-restore.md).
+    volumes:
+      - blobstore:/var/lib/sibyl/blob
+    command: ["python", "-m", "sibyl_control.worker"]
+    # `probe`: credential probes (B14) reach the sim doubles at `sim` (profile sim) only.
+    networks: [data, probe]
+    healthcheck:
+      <<: *health
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(urllib.request.urlopen('http://127.0.0.1:8002/healthz', timeout=2).status != 200)"]
+
+  gateway:
+    image: sibyl/gateway:${SIBYL_VERSION:-dev}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/gateway.Dockerfile
+      args:
+        SIBYL_VERSION: ${SIBYL_VERSION:-dev}
+      secrets: [extra_ca]
+    restart: unless-stopped
+    <<: *hardened
+    # The gateway starts from its last verified snapshot on disk and never waits for the control
+    # plane (ADR-1, sre-engineer 4). Its one dependency is the dev-only sim, and only under the
+    # sim profile (required: false): the sim mints a fresh dev CA on every start, so the gateway
+    # starts after it (and restarts with it) to trust that CA for the doubles.
+    depends_on:
+      sibyl-sim:
+        condition: service_healthy
+        required: false
+        restart: true
+    stop_grace_period: 120s
+    env_file:
+      - path: ${SIBYL_ENV_DIR:-./env}/gateway.env
+        required: true
+    environment:
+      SIBYL_HTTP_PORT: "8080"
+      SIBYL_GATEWAY_ID: ${SIBYL_GATEWAY_ID:-gw-compose-1}
+      SIBYL_CONTROL_URL: http://api:8000
+      SIBYL_INGEST_URL: http://ingest:8001
+      SIBYL_SNAPSHOT_DIR: /var/lib/sibyl/snapshot
+      SIBYL_SNAPSHOT_PINNED_KEY_FILE: /etc/sibyl/snapshot-pin.json
+      SIBYL_TRUSTED_PROXIES: ${SIBYL_CADDY_IP:-172.30.0.10}/32
+      # Only the sim doubles may be private/plain hosts (SSRF guard); start.sh adds the sim dev
+      # CA to the upstream trust bundle when the sim runs (its CA key is discarded after it signs
+      # the one leaf for these names, so it can vouch for nothing else).
+      SIBYL_DEV_HOSTS: sim
+      SIBYL_SIM_CA_URL: http://sim:8300/_sim/tls/ca.pem
+      # Optional upstream trust bundle (PEM) replacing the system store for provider TLS (e.g.
+      # a TLS-re-signing egress proxy): set SIBYL_UPSTREAM_CA_HOST_FILE in .env to the host
+      # file; it is mounted read-only below. Unset = system trust (start.sh adds the sim CA).
+      SIBYL_UPSTREAM_CA_FILE: ${SIBYL_UPSTREAM_CA_HOST_FILE:+/etc/sibyl/upstream-ca.pem}
+    secrets:
+      - { source: gateway_tenant_keys, target: SIBYL_GATEWAY_TENANT_KEYS }
+      - { source: gateway_ingest_key, target: SIBYL_INGEST_KEY }
+      - { source: key_pepper, target: SIBYL_KEY_PEPPER }
+      - { source: scrub_salt, target: SIBYL_SCRUB_SALT }
+    configs:
+      - { source: snapshot_pin, target: /etc/sibyl/snapshot-pin.json }
+      - { source: upstream_ca, target: /etc/sibyl/upstream-ca.pem }
+    command: ["sh", "/etc/sibyl-gateway/start.sh"]
+    volumes:
+      - gateway_snapshot:/var/lib/sibyl/snapshot
+      - ./gateway:/etc/sibyl-gateway:ro
+    networks: [edge]
+    healthcheck:
+      <<: *health
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2).status != 200)"]
+
+  console:
+    # Next.js standalone server (UI + BFF), uid 10001. Caddy serves it on the public origin and
+    # routes /api/bff/* to it; the BFF calls the api in-network. SIBYL_CONSOLE_MODE=demo serves
+    # the scripted fixtures instead (no control plane needed).
+    image: sibyl/console:${SIBYL_VERSION:-dev}
+    build:
+      context: ../../console
+      dockerfile: Dockerfile
+      args:
+        # console/Dockerfile defaults to the tag; compose pins the multi-arch digest (L10).
+        NODE_IMAGE: node:22.20.0-alpine3.22@sha256:dbcedd8aeab47fbc0f4dd4bffa55b7c3c729a707875968d467aaaea42d6225af
+      secrets: [extra_ca]
+    restart: unless-stopped
+    <<: *hardened
+    tmpfs: ["/tmp", "/app/.next/cache"]
+    environment:
+      SIBYL_CONSOLE_MODE: ${SIBYL_CONSOLE_MODE:-live}
+      SIBYL_API_URL: http://api:8000
+      # The env of the keys the console mints: must equal the api's SIBYL_ENV
+      # (env/control.env, `live` for the local demo; ci/tests/test_runtime_env.py pins this).
+      SIBYL_KEY_ENV: live
+    # Pinned like Caddy: the api trusts X-Forwarded-For from this address (SIBYL_TRUSTED_PROXIES).
+    networks:
+      edge:
+        ipv4_address: ${SIBYL_CONSOLE_IP:-172.30.0.11}
+    healthcheck:
+      <<: *health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/healthz"]
+
+  sibyl-sim:
+    # Dev-only simulator and chaos control (R32, R46, D38). Never part of the product bundle.
+    profiles: ["sim"]
+    image: sibyl/sim:${SIBYL_VERSION:-dev}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/sim.Dockerfile
+      args:
+        SIBYL_VERSION: ${SIBYL_VERSION:-dev}
+      secrets: [extra_ca]
+    restart: unless-stopped
+    <<: *hardened
+    # The doubles' dev TLS (a throwaway CA + one leaf for the dev hosts) lives on a tmpfs: the
+    # keys never persist and are minted again on every start. The gateway fetches the CA
+    # certificate from http://sim:8300/_sim/tls/ca.pem; nothing else leaves this container.
+    tmpfs: ["/tmp", "/var/lib/sibyl/sim-tls:uid=10001,gid=10001,mode=0700"]
+    env_file:
+      - path: ${SIBYL_ENV_DIR:-./env}/sim.env
+        required: true
+    environment:
+      SIBYL_SIM_PORT: "8300"
+      SIBYL_GATEWAY_URL: http://gateway:8080
+      SIBYL_ENDPOINT: http://ingest:8001
+      SIBYL_API_URL: http://api:8000
+    secrets:
+      - { source: sim_gateway_key, target: SIBYL_SIM_GATEWAY_KEY }
+      - { source: sim_ingest_key, target: SIBYL_SIM_INGEST_KEY }
+    command:
+      - python
+      - -m
+      - sibyl_sim
+      - serve
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8300"
+      - --doubles-port
+      - "18082"
+      - --tls-dir
+      - /var/lib/sibyl/sim-tls
+      - --tls-host
+      - sim
+    ports:
+      - "127.0.0.1:${SIBYL_PORT_SIM:-8300}:8300"
+      - "127.0.0.1:${SIBYL_PORT_SIM_DOUBLES:-18082}:18082"
+    # Provider base URLs use the dev host `sim` (snapshot demo hosts, the leaf's SAN).
+    networks:
+      edge:
+        aliases: [sim]
+      probe:
+        aliases: [sim]
+    # No depends_on: the doubles need nothing, and the gateway waits for the sim (its CA).
+    healthcheck:
+      <<: *health
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(urllib.request.urlopen('http://127.0.0.1:8300/healthz', timeout=2).status != 200)"]
+
+# Runtime secrets: files under ${SIBYL_ENV_DIR}/secrets (written by init-env.sh; directory
+# 0700, files 0444 because compose bind-mounts them and ignores uid/gid/mode, so the container
+# user must be able to read them; the 0700 directory is the host-side boundary).
+# extra_ca is build-time only: mounted into the dependency-download RUN steps, never a layer.
+secrets:
+  postgres_password: { file: "${SIBYL_ENV_DIR:-./env}/secrets/postgres_password" }
+  db_password_migrate: { file: "${SIBYL_ENV_DIR:-./env}/secrets/db_password_migrate" }
+  db_password_app: { file: "${SIBYL_ENV_DIR:-./env}/secrets/db_password_app" }
+  db_password_ingest: { file: "${SIBYL_ENV_DIR:-./env}/secrets/db_password_ingest" }
+  db_password_worker: { file: "${SIBYL_ENV_DIR:-./env}/secrets/db_password_worker" }
+  kek: { file: "${SIBYL_ENV_DIR:-./env}/secrets/kek" }
+  key_pepper: { file: "${SIBYL_ENV_DIR:-./env}/secrets/key_pepper" }
+  snapshot_signing_key: { file: "${SIBYL_ENV_DIR:-./env}/secrets/snapshot_signing_key" }
+  ledger_signing_key: { file: "${SIBYL_ENV_DIR:-./env}/secrets/ledger_signing_key" }
+  anchor_signing_key: { file: "${SIBYL_ENV_DIR:-./env}/secrets/anchor_signing_key" }
+  session_secret: { file: "${SIBYL_ENV_DIR:-./env}/secrets/session_secret" }
+  oidc_client_secret: { file: "${SIBYL_ENV_DIR:-./env}/secrets/oidc_client_secret" }
+  dex_api_client_secret: { file: "${SIBYL_ENV_DIR:-./env}/secrets/dex_api_client_secret" }
+  dex_persona_hash: { file: "${SIBYL_ENV_DIR:-./env}/secrets/dex_persona_hash" }
+  subject_salt: { file: "${SIBYL_ENV_DIR:-./env}/secrets/subject_salt" }
+  scrub_salt: { file: "${SIBYL_ENV_DIR:-./env}/secrets/scrub_salt" }
+  gateway_tenant_keys: { file: "${SIBYL_ENV_DIR:-./env}/secrets/gateway_tenant_keys" }
+  gateway_ingest_key: { file: "${SIBYL_ENV_DIR:-./env}/secrets/gateway_ingest_key" }
+  sim_gateway_key: { file: "${SIBYL_ENV_DIR:-./env}/secrets/sim_gateway_key" }
+  sim_ingest_key: { file: "${SIBYL_ENV_DIR:-./env}/secrets/sim_ingest_key" }
+  extra_ca:
+    file: ${SIBYL_EXTRA_CA_FILE:-../docker/no-extra-ca.pem}
+
+# Public material (0644, bind-mounted read-only like the secrets).
+configs:
+  snapshot_pin: { file: "${SIBYL_ENV_DIR:-./env}/public/snapshot_pin.json" }
+  # Operator-supplied upstream CA bundle for the gateway; empty placeholder when unset.
+  upstream_ca: { file: "${SIBYL_UPSTREAM_CA_HOST_FILE:-../docker/no-extra-ca.pem}" }
+
+networks:
+  edge:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${SIBYL_EDGE_SUBNET:-172.30.0.0/24}
+          # Dynamic addresses from the upper half only; .10 (Caddy) and .11 (console) are pinned.
+          ip_range: ${SIBYL_EDGE_IP_RANGE:-172.30.0.128/25}
+  data:
+    driver: bridge
+  # Worker -> sim doubles only (credential probes). Internal: no route beyond its two members.
+  probe:
+    driver: bridge
+    internal: true
+
+volumes:
+  pgdata:
+  blobstore:
+  gateway_snapshot:
+  caddy_data:
+  caddy_config:

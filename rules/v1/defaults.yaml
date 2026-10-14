@@ -1,0 +1,460 @@
+# Sibyl rule seed, rules/v1 (ML.md §3.3–§4.6; rulings R37, R38, R40, R41, R48, R51; D36, D39).
+#
+# This file is the single source for two per-tenant seeds written by sibyl.tenant_create():
+#   * alert_rule rows (R18 per-tenant copies, origin='seed'): thresholds, hysteresis, cooldown;
+#   * the seed scoring_config row: caps (penalties), band edges, dead-band, trend parameters.
+# It is compiled into migration services/control/migrations/0013_rules_v1_seed.sql by
+#   python -m sibyl_control.migrate rules-seed --write
+# and CI fails when the two drift. Re-seeding touches only origin='seed' AND overridden=false.
+#
+# Conventions: per-tier values are [tier1, tier2, tier3]. Ratios are decimals in [0, 1].
+# Decimals must not be whole numbers written with a fraction (write 2, not 2.0) so the JCS
+# hash of the scoring config is identical in Python, TypeScript and the database.
+# Threshold edits need a dry-run replay first (R50; sre guard rail 7).
+
+schema: sibyl-rules/1
+rules_source: rules/v1
+seed_version: 1.0.0
+feature_set: features/v1
+
+scoring:
+  tick_s: 10
+  score: "clamp(100 - sum(cap(tier) * severity), 0, 100)"
+  dead_band: 4                       # upward dead-band on band edges (R51)
+  bands:                             # enter when score >= value; leave upward at value + dead_band
+    1: {healthy: 85, watch: 70, degraded: 45}
+    2: {healthy: 80, watch: 65, degraded: 40}
+    3: {healthy: 75, watch: 55, degraded: 30}
+  hysteresis_ticks:
+    worsen_detected: [2, 3, 3]
+    worsen_leading: [6, 6, 12]
+    improve: [18, 12, 6]
+  severity_curves:
+    rate_saturation_multiple: 3      # s = 3t for rates and shares
+    latency_saturation_multiple: 2   # s = 2t for latency
+    relative_threshold: 2            # baseline-relative variant for R2/L2
+    relative_saturation: 4
+    provider_status_ordinal:
+      maintenance: 0.15
+      degraded_performance: 0.33
+      partial_outage: 0.58
+      major_outage: 1
+      unknown: 0
+  trend:
+    ewma_lambda: 0.3
+    slope_windows: 3
+    slope_window_s: 300
+    cusum_k: 0.5
+    cusum_h: 5
+  probability_band_cuts:             # R_H < 0.15 -> "0.05", < 0.45 -> "0.25", < 0.8 -> "0.60", else "0.90"
+    band_0_25: 0.15
+    band_0_60: 0.45
+    band_0_90: 0.8
+  carry_over:
+    failed_band_risk: 1
+    degraded_band_risk: 0.4
+  automation:                        # R41 / D36 release criterion, not a tenant tunable
+    predicted_failover_min_band_tiers_2_3: "0.90"
+    release_candidate_band: "0.60"
+    release_precision_floor: 0.75
+    release_recall_floor: 0.6
+    min_confidence: medium
+    min_rule_families: 2
+    tier2_degrade_pause_s: 20         # R40 degrade_then_auto
+  floors:
+    error_rate_failed: 0.5
+  flap:
+    band_transitions: 3
+    routing_transitions: 2
+    window_s: 600
+    pin_s: [1200, 900, 900]
+    pin_direction: [worse, worse, better]   # R48
+  provisional:
+    min_requests_1h: 50
+    min_coverage: 0.8
+    min_age_days: 1
+    max_band: watch
+  seed_baselines:
+    p95_latency_ms: {small: 1200, large: 4000, reasoning: 15000}
+    error_rate: 0.01
+  failback_canary_pct: [10, 25, 50, 100]
+  false_failover_budget_30d: [0, 1, 2]
+  slo_agent_minutes_pct: ["99.5", "99.0", "98.0"]   # D40, strings: not hashed as decimals
+  rollup_lag_leading_refusal_s: 120
+
+rules:
+  # ---- detected rules ---------------------------------------------------------------
+  - code: error_rate
+    short_code: R1
+    kind: detected
+    sli_family: availability
+    metric: error_rate
+    comparator: above
+    window_s: 300
+    min_samples: 20
+    cap: [50, 40, 30]
+    threshold: [0.05, 0.1, 0.2]
+    hysteresis_in: [2, 3, 3]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [300, 600, 900]
+    what_to_do: "Error rate {value} over {window} exceeds {threshold}. Check provider status and recent deploys; the failover saga moves traffic to the next fallback step."
+
+  - code: p95_latency
+    short_code: R2
+    kind: detected
+    sli_family: latency
+    metric: latency_p95_ms
+    comparator: above
+    window_s: 300
+    min_samples: 20
+    cap: [30, 25, 20]
+    threshold_by_model_class: {small: 5000, large: 20000, reasoning: 60000}
+    relative_threshold: 2
+    hysteresis_in: [2, 3, 3]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [300, 600, 900]
+    what_to_do: "p95 latency {value} ms exceeds {threshold} ms. Compare with the provider's status and the agent's baseline before failing over."
+
+  - code: consecutive_failures
+    short_code: R3
+    kind: detected
+    sli_family: availability
+    metric: consecutive_errors
+    comparator: count
+    window_s: 60
+    min_samples: 1
+    cap: [60, 50, 40]
+    threshold: [3, 3, 5]
+    hysteresis_in: [1, 1, 1]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [300, 600, 900]
+    what_to_do: "{value} consecutive failed calls. The agent is failing hard; detected-failure failover applies on every tier."
+
+  - code: provider_status
+    short_code: R4
+    kind: detected
+    scope: provider
+    sli_family: budget_dependency
+    metric: provider_status
+    comparator: ordinal
+    window_s: 300
+    min_samples: 0
+    severity: critical
+    collapses_to_provider: true
+    cap: [60, 60, 60]
+    detected_at: major_outage
+    leading_at: [maintenance, degraded_performance, partial_outage]
+    hysteresis_in: [1, 1, 1]
+    hysteresis_out: [6, 6, 6]
+    cooldown_s: [300, 300, 300]
+    what_to_do: "Provider reports {value}. Affected agents are failed over in tier order; one provider incident collects the member alerts."
+
+  - code: budget_breach
+    short_code: R5
+    kind: detected
+    sli_family: budget_dependency
+    metric: spend_ratio
+    comparator: above
+    window_s: 3600
+    min_samples: 0
+    cap: [70, 70, 70]
+    threshold: [1, 1, 1]
+    hysteresis_in: [1, 1, 1]
+    hysteresis_out: [1, 1, 1]
+    cooldown_s: [21600, 21600, 21600]
+    what_to_do: "Monthly budget exhausted ({value} of plan). Throttle or raise the budget in the continuity plan."
+
+  - code: refusal_share
+    short_code: R6
+    kind: detected
+    sli_family: output_quality
+    metric: finish_content_filter_ratio
+    comparator: above
+    window_s: 300
+    min_samples: 20
+    cap: [25, 20, 15]
+    threshold: [0.1, 0.15, 0.25]
+    hysteresis_in: [6, 6, 6]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "Refusal share {value} exceeds {threshold}. Review recent prompt or model changes; silent degradation is gated here (R37)."
+
+  - code: truncation_share
+    short_code: R7
+    kind: detected
+    sli_family: output_quality
+    metric: finish_length_ratio
+    comparator: above
+    window_s: 300
+    min_samples: 20
+    cap: [20, 15, 12]
+    threshold: [0.25, 0.25, 0.25]
+    vs_baseline: 2
+    hysteresis_in: [6, 6, 6]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "Truncated responses at {value} (twice the baseline). Check max_tokens and context size."
+
+  - code: schema_fail_share
+    short_code: R8
+    kind: detected
+    sli_family: output_quality
+    metric: schema_validation_fail_ratio
+    comparator: above
+    window_s: 300
+    min_samples: 20
+    cap: [25, 20, 15]
+    threshold: [0.1, 0.15, 0.2]
+    hysteresis_in: [6, 6, 6]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "Tool-call schema failures at {value}. A model or tool contract changed; consider handing off."
+
+  - code: heartbeat_missing
+    short_code: R9
+    kind: detected
+    sli_family: availability
+    metric: request_count
+    comparator: boolean
+    window_s: 300
+    min_samples: 0
+    cap: [25, 20, 15]
+    silent_cadence_multiple: 2
+    applies_when: plan_declares_cadence
+    hysteresis_in: [1, 1, 1]
+    hysteresis_out: [3, 3, 3]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "No traffic for twice the declared cadence. Check the caller and the gateway path."
+
+  - code: tool_loop
+    kind: detected
+    sli_family: task_completion
+    metric: tool_seq_repeat_ratio
+    comparator: composite
+    window_s: 300
+    min_samples: 20
+    cap: [30, 25, 20]
+    tool_seq_repeat_ratio: 0.5
+    tool_call_count_5m: 20
+    task_steps_p95_vs_baseline: 3
+    hysteresis_in: [2, 3, 3]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "The agent repeats the same tool sequence. Quarantine (tier 1: await approval) and inspect the latest task."
+
+  - code: quality_proxy
+    kind: detected
+    sli_family: output_quality
+    metric: quality_proxy
+    comparator: composite
+    window_s: 300
+    min_samples: 20
+    severity: info
+    score_only: true                  # one score penalty = max(R6, R7, R8, empty output); no alert rows
+    components: [refusal_share, truncation_share, schema_fail_share]
+    empty_output_ratio: 0.05
+    cap: [25, 20, 15]
+    hysteresis_in: [6, 6, 6]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "Output quality proxy degraded; see the refusal, truncation and schema factors."
+
+  - code: flapping
+    kind: detected
+    sli_family: availability
+    metric: band_transitions
+    comparator: count
+    window_s: 600
+    min_samples: 0
+    severity: warning
+    alert_only: true                  # raised by the flap detector (scoring.flap, R48); no score penalty
+    cap: [0, 0, 0]
+    hysteresis_in: [1, 1, 1]
+    hysteresis_out: [1, 1, 1]
+    cooldown_s: [1200, 900, 900]
+    what_to_do: "The agent's health band or routing flapped within {window}. It is pinned (tiers 1-2 at the worse band, tier 3 at the better band) while the hold lasts; inspect the transition list before releasing the pin."
+
+  # ---- leading rules (closed buckets only; never critical on tier 1 alone) -----------
+  - code: error_trend
+    short_code: L1
+    kind: leading
+    sli_family: availability
+    metric: error_rate
+    comparator: trend
+    horizon_s: 900
+    window_s: 900
+    min_samples: 20
+    trend_windows: 3
+    cap: [20, 15, 10]
+    level_vs_detected_threshold: 0.5
+    hysteresis_in: [6, 6, 12]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "Errors are rising toward the failure threshold. Prepare the fallback; tier 1 asks for approval."
+
+  - code: latency_trend
+    short_code: L2
+    kind: leading
+    sli_family: latency
+    metric: latency_p95_ms
+    comparator: trend
+    horizon_s: 900
+    window_s: 900
+    min_samples: 20
+    trend_windows: 3
+    cap: [15, 10, 8]
+    level_vs_detected_threshold: 0.8
+    vs_baseline: 1.5
+    hysteresis_in: [6, 6, 12]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "Latency is trending up toward its threshold."
+
+  - code: ratelimit_proximity
+    short_code: L3
+    kind: leading
+    sli_family: rate_limit_headroom
+    metric: ratelimit_headroom
+    comparator: proximity
+    horizon_s: 900
+    window_s: 300
+    min_samples: 5
+    cap: [25, 20, 15]
+    threshold: [0.15, 0.1, 0.1]
+    share_429: 0.05
+    time_to_exhaustion_s: 900
+    hysteresis_in: [6, 6, 12]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "Rate-limit headroom is low. Throttle or spread traffic across fallback models."
+
+  - code: budget_proximity
+    short_code: L4
+    kind: leading
+    sli_family: budget_dependency
+    metric: budget_burn_1h
+    comparator: proximity
+    horizon_s: 3600
+    window_s: 3600
+    min_samples: 0
+    cap: [15, 15, 15]
+    projected_1h: 0.9
+    month_projected_24h: 1
+    hysteresis_in: [1, 1, 1]
+    hysteresis_out: [1, 1, 1]
+    cooldown_s: [21600, 21600, 21600]
+    what_to_do: "Spend is projected to exhaust the budget. Throttle or raise the budget."
+
+  - code: fallback_pressure
+    short_code: L5
+    kind: leading
+    sli_family: rate_limit_headroom
+    metric: inline_fallback_breaker_share
+    comparator: above
+    horizon_s: 900
+    window_s: 300
+    min_samples: 20
+    cap: [30, 25, 20]
+    threshold: [0.1, 0.2, 0.25]
+    hysteresis_in: [6, 6, 12]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "The gateway is leaning on inline fallback and open breakers. The primary is struggling."
+
+  - code: refusal_trend
+    short_code: L6
+    kind: leading
+    sli_family: output_quality
+    metric: finish_content_filter_ratio
+    comparator: trend
+    horizon_s: 900
+    window_s: 900
+    min_samples: 20
+    trend_windows: 3
+    cap: [12, 10, 8]
+    level_vs_detected_threshold: 0.5
+    hysteresis_in: [6, 6, 12]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "Refusals are trending up. Review prompt and model changes before quality collapses."
+
+  - code: continuity_unverified
+    short_code: L7
+    kind: leading
+    sli_family: budget_dependency
+    metric: drill_overdue
+    comparator: boolean
+    horizon_s: 86400
+    window_s: 86400
+    min_samples: 0
+    cap: [5, 5, 0]
+    drill_overdue_days: [30, 90, 0]
+    hysteresis_in: [1, 1, 1]
+    hysteresis_out: [1, 1, 1]
+    cooldown_s: [86400, 86400, 86400]
+    what_to_do: "The fallback has not been proven by a failover or drill recently. Schedule a drill."
+
+  - code: context_saturation
+    kind: leading
+    sli_family: output_quality
+    metric: context_utilisation_p95
+    comparator: above
+    horizon_s: 900
+    window_s: 300
+    min_samples: 20
+    cap: [15, 12, 10]
+    threshold: [0.85, 0.85, 0.85]
+    finish_length_ratio: 0.25
+    hysteresis_in: [6, 6, 12]
+    hysteresis_out: [18, 12, 6]
+    cooldown_s: [600, 600, 600]
+    what_to_do: "Context window nearly full. Trim context or move to a larger-context model."
+
+  - code: credential_expiry
+    kind: leading
+    sli_family: budget_dependency
+    metric: days_to_credential_expiry
+    comparator: below
+    horizon_s: 86400
+    window_s: 86400
+    min_samples: 0
+    cap: [20, 15, 10]
+    threshold: [7, 7, 7]
+    full_at: 1
+    hysteresis_in: [1, 1, 1]
+    hysteresis_out: [1, 1, 1]
+    cooldown_s: [86400, 86400, 86400]
+    what_to_do: "A fallback credential expires soon. Rotate it before a failover needs it."
+
+  - code: model_deprecation
+    kind: leading
+    sli_family: budget_dependency
+    metric: days_to_model_deprecation
+    comparator: below
+    horizon_s: 86400
+    window_s: 86400
+    min_samples: 0
+    cap: [15, 10, 5]
+    threshold: [30, 30, 30]
+    full_at: 7
+    hysteresis_in: [1, 1, 1]
+    hysteresis_out: [1, 1, 1]
+    cooldown_s: [86400, 86400, 86400]
+    what_to_do: "The primary model is scheduled for deprecation. Plan a version change."
+
+  - code: drift_cusum
+    kind: leading
+    sli_family: output_quality
+    metric: cusum_output
+    comparator: trend
+    horizon_s: 3600
+    window_s: 3600
+    min_samples: 20
+    severity: info
+    cap: [0, 0, 0]
+    watch_only: true
+    features: [tokens_out_mean, output_chars_mean, tool_seq_entropy]
+    hysteresis_in: [6, 6, 6]
+    hysteresis_out: [18, 18, 18]
+    cooldown_s: [3600, 3600, 3600]
+    what_to_do: "Output distribution drifted with nothing else firing. Watch only."

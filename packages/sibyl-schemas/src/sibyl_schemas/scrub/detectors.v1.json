@@ -1,0 +1,446 @@
+{
+  "registry": "detectors/v1",
+  "profile": "secrets_only",
+  "version": 1,
+  "content_hash": "f400dd23e3038bf3c07cd75afeecd395d85060400a866f481e2aee1ce1808933",
+  "replacement_format": "[{kind}:{hash8}]",
+  "hash": "first 8 hex of sha256(SIBYL_SCRUB_SALT || match)",
+  "entropy_threshold_bits_per_char": 4.5,
+  "validators": [
+    "basic_credentials",
+    "high_entropy",
+    "kv_value",
+    "mixed_alnum",
+    "not_placeholder",
+    "not_prose_word"
+  ],
+  "pipeline": {
+    "max_chars": 16777216,
+    "window_chars": 65536,
+    "window_overlap_chars": 16384,
+    "views": [
+      [
+        "json"
+      ],
+      [
+        "json",
+        "json"
+      ],
+      [
+        "json",
+        "json",
+        "json"
+      ],
+      [
+        "percent"
+      ],
+      [
+        "percent",
+        "percent"
+      ],
+      [
+        "json",
+        "percent"
+      ],
+      [
+        "percent",
+        "json"
+      ],
+      [
+        "format"
+      ],
+      [
+        "json",
+        "format"
+      ],
+      [
+        "percent",
+        "format"
+      ]
+    ],
+    "decoders": {
+      "json": "JSON string escapes \\\" \\\\ \\/ \\b \\f \\n \\r \\t \\uXXXX",
+      "percent": "runs of %XX decoded as UTF-8 (undecodable bytes match nothing); '+' is left alone",
+      "format": "strip Unicode Cf format characters (zero-width, bidi, BOM, soft hyphen); fold fullwidth U+FF01-U+FF5E to ASCII"
+    },
+    "base64": {
+      "min_chars": 24,
+      "max_chars": 65536,
+      "views": "every view except those ending in the format decoder",
+      "max_depth": 2,
+      "printable_ratio": 0.9,
+      "replace": "whole run, labelled with the highest-priority inner detector"
+    },
+    "overlap": "higher priority first, then longer match",
+    "existing_tokens": "never rescanned; a candidate starting inside one is dropped, one starting before one keeps token-free pieces of >= 4 chars containing [A-Za-z0-9]",
+    "token_hash_input": "the secret as decoded in the view that found it"
+  },
+  "detectors": [
+    {
+      "id": "sibyl_key",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9])sbl_(?:live|test)_[A-Za-z0-9]{12}_[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "anthropic_key",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9_-])sk-ant-[A-Za-z0-9_-]{20,}",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "openai_key",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9_-])sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": "mixed_alnum",
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "stripe_key",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9_])(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{24,}",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "github_token",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9_])gh[pousr]_[A-Za-z0-9]{36,}",
+          "flags": "",
+          "group": 0
+        },
+        {
+          "regex": "(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{82}",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "gitlab_token",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9_-])gl(?:pat|dt|rt|ptt|cbt|soat|ft|imt|agent)-[A-Za-z0-9_-]{20,}",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "huggingface_token",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9_])hf_[A-Za-z0-9]{30,}(?![A-Za-z0-9_])",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "slack_token",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9_-])xox[abprs]-[A-Za-z0-9-]{10,}",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "slack_webhook",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "\\bhooks\\.slack\\.com/(?:services|workflows|triggers)/([A-Za-z0-9_/+-]{20,256})",
+          "flags": "i",
+          "group": 1
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "google_api_key",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9_-])AIza[A-Za-z0-9_-]{35}(?![A-Za-z0-9_-])",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "aws_access_key",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Z0-9])(?:AKIA|ASIA)[A-Z0-9]{16}(?![A-Z0-9])",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "aws_secret_key",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?:aws_?secret(?:_?access)?_?key|secret_?access_?key)[\\\"']?\\s{0,16}[:=]\\s{0,16}[\\\"']?([A-Za-z0-9/+=]{40})(?![A-Za-z0-9/+=])",
+          "flags": "i",
+          "group": 1
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "gcp_sa_key",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "\\\"private_key_id\\\"\\s{0,16}:\\s{0,16}\\\"([0-9a-f]{40})\\\"",
+          "flags": "",
+          "group": 1
+        },
+        {
+          "regex": "\\\"private_key\\\"\\s{0,16}:\\s{0,16}\\\"(-----BEGIN (?:[A-Z0-9]+ ){0,4}PRIVATE KEY(?: BLOCK)?-----(?:(?:[A-Za-z0-9+/=:,. \\t\\r\\n\\\\]|-(?!----)){0,8192}-----END (?:[A-Z0-9]+ ){0,4}PRIVATE KEY(?: BLOCK)?-----(?:\\\\n)?|(?:[ \\t\\r\\n]|\\\\[rn]){0,8}(?:[A-Za-z][A-Za-z-]{0,30}:[^\\r\\n\\\\]{0,128}(?:\\r?\\n|\\\\r?\\\\n)){0,4}(?:[ \\t\\r\\n]|\\\\[rn]){0,8}(?:[A-Za-z0-9+/=]{16,128}(?:[ \\t\\r\\n]|\\\\[rn]){0,4}){1,256}))",
+          "flags": "",
+          "group": 1
+        }
+      ],
+      "validator": null,
+      "requires": "\\\"private_key_id\\\"",
+      "fields": null
+    },
+    {
+      "id": "azure_conn_string",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "AccountKey=([A-Za-z0-9+/]{86,}={0,2})",
+          "flags": "",
+          "group": 1
+        },
+        {
+          "regex": "SharedAccessKey=([A-Za-z0-9+/]{42,}={0,2})",
+          "flags": "",
+          "group": 1
+        },
+        {
+          "regex": "SharedAccessSignature=([^;\\s\\\"'\\\\]+)",
+          "flags": "",
+          "group": 1
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "jwt",
+      "kind": "TOKEN",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{8,}\\.eyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "ssh_key",
+      "kind": "PRIVATE_KEY",
+      "patterns": [
+        {
+          "regex": "-----BEGIN OPENSSH PRIVATE KEY-----(?:[A-Za-z0-9+/=:,. \\t\\r\\n\\\\]|-(?!----)){0,8192}-----END OPENSSH PRIVATE KEY-----",
+          "flags": "",
+          "group": 0
+        },
+        {
+          "regex": "-----BEGIN OPENSSH PRIVATE KEY-----(?:[ \\t\\r\\n]|\\\\[rn]){0,8}(?:[A-Za-z][A-Za-z-]{0,30}:[^\\r\\n\\\\]{0,128}(?:\\r?\\n|\\\\r?\\\\n)){0,4}(?:[ \\t\\r\\n]|\\\\[rn]){0,8}(?:[A-Za-z0-9+/=]{16,128}(?:[ \\t\\r\\n]|\\\\[rn]){0,4}){1,256}",
+          "flags": "",
+          "group": 0
+        },
+        {
+          "regex": "Private-Lines:[ \\t]{0,8}\\d{1,4}(?:\\r?\\n|\\\\r?\\\\n)((?:[A-Za-z0-9+/=]{4,128}(?:\\r?\\n|\\\\r?\\\\n)){1,256})",
+          "flags": "",
+          "group": 1
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "pem_block",
+      "kind": "PRIVATE_KEY",
+      "patterns": [
+        {
+          "regex": "-----BEGIN (?:[A-Z0-9]+ ){0,4}PRIVATE KEY(?: BLOCK)?-----(?:[A-Za-z0-9+/=:,. \\t\\r\\n\\\\]|-(?!----)){0,8192}-----END (?:[A-Z0-9]+ ){0,4}PRIVATE KEY(?: BLOCK)?-----",
+          "flags": "",
+          "group": 0
+        },
+        {
+          "regex": "-----BEGIN (?:[A-Z0-9]+ ){0,4}PRIVATE KEY(?: BLOCK)?-----(?:[ \\t\\r\\n]|\\\\[rn]){0,8}(?:[A-Za-z][A-Za-z-]{0,30}:[^\\r\\n\\\\]{0,128}(?:\\r?\\n|\\\\r?\\\\n)){0,4}(?:[ \\t\\r\\n]|\\\\[rn]){0,8}(?:[A-Za-z0-9+/=]{16,128}(?:[ \\t\\r\\n]|\\\\[rn]){0,4}){1,256}",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "dsn",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9+.-])(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\\+srv)?|rediss?|amqps?)://[^:/\\s@\\\"'?#\\\\]{0,128}:((?![0-9]{1,5}(?:[/?#\\s\\\"']|$))(?:[^\\s\\\"':\\\\]|:(?!//)){1,256})@(?=[A-Za-z0-9\\[])",
+          "flags": "i",
+          "group": 1
+        },
+        {
+          "regex": "(?<![A-Za-z0-9+.-])(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\\+srv)?|rediss?|amqps?)://[^\\s\\\"'?#/]{0,256}(?:/[^\\s\\\"'?#/]{1,256}){0,16}/?\\?(?:[^\\s\\\"'&#]{0,256}&){0,32}(?:password|passwd|pwd)=([^&\\s\\\"'#\\\\]{1,512})",
+          "flags": "i",
+          "group": 1
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "basic_auth_url",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9+.-])[a-z][a-z0-9+.-]{0,31}://[^:/\\s@\\\"'?#\\\\]{0,128}:((?![0-9]{1,5}(?:[/?#\\s\\\"']|$))(?:[^\\s\\\"':\\\\]|:(?!//)){1,256})@(?=[A-Za-z0-9\\[])",
+          "flags": "i",
+          "group": 1
+        }
+      ],
+      "validator": null,
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "bearer_header",
+      "kind": "TOKEN",
+      "patterns": [
+        {
+          "regex": "\\bbearer\\s{1,8}([A-Za-z0-9._~+/=-]{16,})",
+          "flags": "i",
+          "group": 1
+        }
+      ],
+      "validator": "not_prose_word",
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "basic_auth_header",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "\\bbasic\\s{1,8}([A-Za-z0-9+/]{8,}={0,2})(?![A-Za-z0-9+/=])",
+          "flags": "i",
+          "group": 1
+        }
+      ],
+      "validator": "basic_credentials",
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "generic_secret_kv",
+      "kind": "SECRET",
+      "patterns": [
+        {
+          "regex": "(?:api[_-]?key|client[_-]?secret|secret|password|passwd|pwd|passphrase|token)[\\\"']?\\s{0,16}[:=]\\s{0,16}[\\\"']?([^\\s\\\"'\\\\]{12,})",
+          "flags": "i",
+          "group": 1
+        }
+      ],
+      "validator": "kv_value",
+      "requires": null,
+      "fields": null
+    },
+    {
+      "id": "high_entropy",
+      "kind": "ENTROPY",
+      "patterns": [
+        {
+          "regex": "(?<![A-Za-z0-9+/=_%-])(?<!base64,)(?!sha(?:256|384|512)-)[A-Za-z0-9+/=_-]{32,}(?![A-Za-z0-9+/=_-])",
+          "flags": "",
+          "group": 0
+        }
+      ],
+      "validator": "high_entropy",
+      "requires": null,
+      "fields": [
+        "header",
+        "state",
+        "tool_args"
+      ]
+    }
+  ]
+}

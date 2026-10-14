@@ -1,0 +1,28 @@
+# S-18 Observation gap (ML §8.2): an SDK-instrumented tier-1 agent goes silent (no spans, no
+# heartbeat) for 4 minutes. The product should synthesise observation.gap and mark coverage
+# provisional; it must not fail over on a gap alone.
+id: S-18
+title: Observation gap, SDK silent 4 min, tier 1
+gate_class: none
+duration_s: 360
+tenants:
+  meridian:
+    agents:
+      quote-assistant: sdk_steady   # tier 1, openai-stub
+# R9 heartbeat_missing runs only on plans that declare a cadence (ML §3.3); the admin declares
+# one for this always-on agent (sdk_steady calls every ~5 s), so 60 s of silence is a miss.
+cadences:
+  quote-assistant: 30
+chaos:
+  - {at: 60, actor: quote-assistant, set: {silent_s: 240}}
+labels:
+  - {agent: quote-assistant, kind: onset, t: 60, failure_mode: observation_gap}
+  - {agent: quote-assistant, kind: recovery, t: 300}
+expect:
+  - event_seen: {agent: quote-assistant, event_type: observation.gap}
+  - detect: {agent: quote-assistant, rule: R9, by_t: 300}
+  - no_alert: {agent: quote-assistant, rule: [R1, R3]}
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}
+  - no_action: {agent: quote-assistant}

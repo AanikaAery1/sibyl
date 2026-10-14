@@ -1,0 +1,46 @@
+[
+ {
+  "resource": {
+   "service.name": "quote-worker"
+  },
+  "scopes": [
+   {
+    "name": "sibyl-sdk",
+    "version": "0.1.0",
+    "records": [
+     {
+      "time_ns": 1791640000000000000,
+      "observed_ns": 1791640000000000001,
+      "severity_number": 13,
+      "severity_text": "WARN",
+      "body": {
+       "kvlist": {
+        "note": "buffer dropped"
+       }
+      },
+      "attributes": {
+       "sibyl.sdk.dropped_spans": 12,
+       "sibyl.emitter_id": "sdk:h:1"
+      },
+      "event_name": "sibyl.sdk.buffer",
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "00f067aa0ba902b7"
+     },
+     {
+      "time_ns": 1791640000000000000,
+      "observed_ns": 0,
+      "severity_number": 0,
+      "severity_text": "",
+      "body": "free text",
+      "attributes": {
+       "event.name": "app.log"
+      },
+      "event_name": "",
+      "trace_id": "",
+      "span_id": ""
+     }
+    ]
+   }
+  ]
+ }
+]

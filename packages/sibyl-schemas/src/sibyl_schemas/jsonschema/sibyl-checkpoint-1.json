@@ -1,0 +1,343 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sibyl.dev/schemas/sibyl-checkpoint/1",
+  "title": "sibyl-checkpoint/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "checkpoint_id",
+    "tenant_id",
+    "agent_id",
+    "task_id",
+    "seq",
+    "step_index",
+    "created_at",
+    "state_bytes",
+    "state_schema",
+    "completed_steps",
+    "pending_steps",
+    "side_effects",
+    "redaction",
+    "provenance"
+  ],
+  "properties": {
+    "schema": {
+      "const": "sibyl-checkpoint/1"
+    },
+    "checkpoint_id": {
+      "$ref": "#/$defs/uuidv7"
+    },
+    "tenant_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "agent_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "task_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic per task; gaps allowed, order is authoritative"
+    },
+    "step_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "step_name": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "goal": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "state": {
+      "type": "object",
+      "description": "Inline when state_bytes <= 65536"
+    },
+    "state_ref": {
+      "$ref": "#/$defs/payload_ref"
+    },
+    "state_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "state_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "state_schema": {
+      "type": "string",
+      "description": "Hint for the consumer: 'json' | 'app:<name>/v<n>' | 'langgraph/StateSnapshot@1' | 'pydantic:<module.Class>'"
+    },
+    "completed_steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/completed_step"
+      }
+    },
+    "pending_steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pending_step"
+      }
+    },
+    "side_effects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/side_effect"
+      }
+    },
+    "redaction": {
+      "$ref": "#/$defs/redaction_state"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sdk_version",
+        "trace_id",
+        "span_id"
+      ],
+      "properties": {
+        "sdk_version": {
+          "type": "string"
+        },
+        "trace_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "span_id": {
+          "$ref": "#/$defs/span_id"
+        },
+        "prev_checkpoint_id": {
+          "$ref": "#/$defs/uuidv7"
+        },
+        "framework_checkpoint_id": {
+          "type": "string",
+          "description": "LangGraph thread/checkpoint id when mirrored"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state_bytes": {
+            "maximum": 65536
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "state"
+        ]
+      },
+      "else": {
+        "required": [
+          "state_ref"
+        ],
+        "not": {
+          "required": [
+            "state"
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "uuidv7": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "span_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "payload_ref": {
+      "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/payload_ref"
+    },
+    "output_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preview": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "ref": {
+          "$ref": "#/$defs/payload_ref"
+        },
+        "content_type": {
+          "type": "string"
+        }
+      }
+    },
+    "completed_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "step",
+        "started_at",
+        "ended_at",
+        "assumed"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "step": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ended_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "tool_name": {
+          "type": "string"
+        },
+        "call_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "span_id": {
+          "$ref": "#/$defs/span_id"
+        },
+        "output": {
+          "$ref": "#/$defs/output_ref"
+        },
+        "assumed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pending_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "step"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "step": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "inputs_needed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blocked_on": {
+          "type": "string"
+        }
+      }
+    },
+    "side_effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "at",
+        "assumed"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "external_write",
+            "message_sent",
+            "payment",
+            "file_written",
+            "db_write",
+            "ticket_created",
+            "api_call",
+            "unknown"
+          ],
+          "x-sibyl-enum": "SideEffectKind"
+        },
+        "target": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "reversible": {
+          "type": "boolean"
+        },
+        "idempotent": {
+          "type": "boolean",
+          "description": "true only when re-running the call is safe; any other side effect is never resumed automatically (A-4)"
+        },
+        "assumed": {
+          "type": "boolean"
+        },
+        "evidence_span_id": {
+          "$ref": "#/$defs/span_id"
+        }
+      }
+    },
+    "redaction_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capture_mode",
+        "profile"
+      ],
+      "properties": {
+        "capture_mode": {
+          "enum": [
+            "full",
+            "redacted",
+            "metadata"
+          ],
+          "x-sibyl-enum": "CaptureMode"
+        },
+        "profile": {
+          "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/redaction_profile"
+        },
+        "fields_redacted": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

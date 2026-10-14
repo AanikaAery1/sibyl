@@ -1,0 +1,31 @@
+{
+  "schema": "sibyl-action-policy/1",
+  "policy_id": "0192767f-0000-7000-8000-0000000ac002",
+  "version": 1,
+  "default_effect": "allow",
+  "tool_allowlist_enforced": false,
+  "tool_allowlist": null,
+  "sensitive_tools": [],
+  "external_tools": [
+    "http.*"
+  ],
+  "hold_timeout_s": 300,
+  "rules": [
+    {
+      "rule_id": "exfil",
+      "tool": "*",
+      "data_class": {
+        "secrets": true,
+        "pii": [
+          "email",
+          "phone",
+          "credit_card",
+          "iban",
+          "national_id"
+        ]
+      },
+      "effect": "block",
+      "reason": "No secrets or personal data to external endpoints"
+    }
+  ]
+}

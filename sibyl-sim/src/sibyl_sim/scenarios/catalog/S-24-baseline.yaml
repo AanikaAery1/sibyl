@@ -1,0 +1,29 @@
+# S-24 Baseline (ML §8.2; Phase 1 runs 10 min, the 60-min soak is Phase 1.5 A5): no chaos,
+# Poisson arrivals on every agent. This is the precision denominator: zero alerts above info.
+id: S-24
+title: Baseline, no chaos, 10 minutes
+gate_class: none
+duration_s: 600
+health_poll_s: 60
+tenants:
+  meridian:
+    default_profile: steady
+    agents:
+      support-triage: busy
+      kb-summarizer: busy
+      collections-bot: busy
+  northstar:
+    default_profile: steady
+labels: []
+expect:
+  - quiet: {tenant: meridian}
+  - quiet: {tenant: northstar}
+  - scores_at_least: {tenant: meridian, min: 90}
+  - scores_at_least: {tenant: northstar, min: 90}
+  - observed: {tenant: meridian}
+  - observed: {tenant: northstar}
+  - explainable: {}
+  - isolated: {tenant: meridian}
+  - isolated: {tenant: northstar}
+  - isolated: {tenant: sandbox}
+  - no_action: {agent: support-triage}

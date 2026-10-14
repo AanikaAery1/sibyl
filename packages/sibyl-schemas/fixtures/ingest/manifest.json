@@ -1,0 +1,380 @@
+{
+  "area": "ingest",
+  "cases": [
+    {
+      "file": "valid/event_gen_ai_request_merged.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_gen_ai_request_gateway_only.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_checkpoint.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_tool_call.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_tool_call_action_gate.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_agent_invoke_start.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_agent_invoke_end.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_handoff_requested.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_handoff_completed.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_handoff_returned.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_feedback.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_task_outcome.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_agent_discovered.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_policy_decision.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_observation_gap_platform.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_provider_status_platform.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "valid/event_health_transition.json",
+      "schema": "sibyl-event/1",
+      "valid": true
+    },
+    {
+      "file": "invalid/event_gen_ai_request_negative_latency.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/latency_ms",
+      "why": "latency_ms below minimum 0"
+    },
+    {
+      "file": "invalid/event_gen_ai_request_duplicate_contributions.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/contributions",
+      "why": "contributions are unique"
+    },
+    {
+      "file": "invalid/event_gen_ai_request_content_in_attrs.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs",
+      "why": "content keys never live in attrs (R19)"
+    },
+    {
+      "file": "invalid/event_gen_ai_request_payload_inline_not_canonical.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs",
+      "why": "payload_inline exists only on the wire variant"
+    },
+    {
+      "file": "invalid/event_tool_call_unknown_tool_type.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/tool_type",
+      "why": "tool_type not in value set"
+    },
+    {
+      "file": "invalid/event_tool_call_unknown_action_effect.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/action_effect",
+      "why": "action_effect not in value set (escalate is a policy effect, not an outcome)"
+    },
+    {
+      "file": "invalid/event_tool_call_null_agent.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/agent_id",
+      "why": "agent_id may be null only for provider.status and observation.gap"
+    },
+    {
+      "file": "invalid/event_agent_invoke_missing_name.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs",
+      "why": "agent_name required"
+    },
+    {
+      "file": "invalid/event_checkpoint_seq_zero.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/seq",
+      "why": "checkpoint seq starts at 1"
+    },
+    {
+      "file": "invalid/event_handoff_requested_bad_trigger.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/trigger",
+      "why": "trigger not in value set"
+    },
+    {
+      "file": "invalid/event_handoff_completed_rating_out_of_range.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/rating",
+      "why": "rating is 1..5"
+    },
+    {
+      "file": "invalid/event_handoff_returned_email_operator_ref.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/operator_ref",
+      "why": "operator_ref is a user id, never an email"
+    },
+    {
+      "file": "invalid/event_feedback_score_out_of_range.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/score",
+      "why": "score normalised to [-1, 1]"
+    },
+    {
+      "file": "invalid/event_task_outcome_unknown_outcome.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/outcome",
+      "why": "outcome not in value set"
+    },
+    {
+      "file": "invalid/event_agent_discovered_short_hash.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/candidate_hash",
+      "why": "candidate_hash is 16 hex"
+    },
+    {
+      "file": "invalid/event_policy_decision_unknown_action.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/action",
+      "why": "action not in value set"
+    },
+    {
+      "file": "invalid/event_observation_gap_unknown_cause.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/cause",
+      "why": "cause not in value set"
+    },
+    {
+      "file": "invalid/event_provider_status_unknown_status.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/status",
+      "why": "provider status wire set"
+    },
+    {
+      "file": "invalid/event_health_transition_score_101.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/attrs/score",
+      "why": "score is 0..100"
+    },
+    {
+      "file": "invalid/event_unknown_event_type.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/type",
+      "why": "unknown event type"
+    },
+    {
+      "file": "invalid/event_ts_not_rfc3339.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/ts",
+      "why": "ts must be RFC 3339 with offset"
+    },
+    {
+      "file": "invalid/event_ts_impossible_date.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/ts",
+      "why": "calendar-invalid date"
+    },
+    {
+      "file": "invalid/event_event_id_not_uuidv7.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/event_id",
+      "why": "event_id must be UUIDv7"
+    },
+    {
+      "file": "invalid/event_legacy_schema_name.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/schema",
+      "why": "D19 rename: sibyl-event/1 only"
+    },
+    {
+      "file": "invalid/event_unknown_capture_mode.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/capture_mode",
+      "why": "capture_mode value set"
+    },
+    {
+      "file": "invalid/event_uppercase_uuid.json",
+      "schema": "sibyl-event/1",
+      "valid": false,
+      "error_pointer": "/tenant_id",
+      "why": "ids are lowercase"
+    },
+    {
+      "file": "valid/wire_checkpoint_inline.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": true
+    },
+    {
+      "file": "valid/wire_gen_ai_request_inline.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": true
+    },
+    {
+      "file": "valid/wire_handoff_requested_inline.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": true
+    },
+    {
+      "file": "valid/wire_feedback_no_payload.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": true
+    },
+    {
+      "file": "invalid/wire_with_observed_at.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": false,
+      "error_pointer": "",
+      "why": "observed_at is ingest-authored"
+    },
+    {
+      "file": "invalid/wire_with_ingest_block.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": false,
+      "error_pointer": "",
+      "why": "ingest is ingest-authored"
+    },
+    {
+      "file": "invalid/wire_inline_bad_encoding.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": false,
+      "error_pointer": "/attrs/payload_inline/encoding",
+      "why": "encoding utf8|base64"
+    },
+    {
+      "file": "invalid/wire_inline_on_agent_invoke.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": false,
+      "error_pointer": "/attrs",
+      "why": "payload_inline only where attrs carry a PayloadRef"
+    },
+    {
+      "file": "invalid/wire_inline_missing_content_type.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": false,
+      "error_pointer": "/attrs/payload_inline",
+      "why": "content_type required"
+    },
+    {
+      "file": "valid/batch_two_events.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": true,
+      "pointer": "/$defs/batch"
+    },
+    {
+      "file": "invalid/batch_wrong_schema.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": false,
+      "pointer": "/$defs/batch",
+      "error_pointer": "/schema",
+      "why": "unsupported schema major"
+    },
+    {
+      "file": "invalid/batch_empty.json",
+      "schema": "sibyl-event-wire/1",
+      "valid": false,
+      "pointer": "/$defs/batch",
+      "error_pointer": "/events",
+      "why": "at least one event"
+    },
+    {
+      "file": "valid/response_partial.json",
+      "schema": "sibyl-ingest-response/1",
+      "valid": true
+    },
+    {
+      "file": "valid/response_replayed.json",
+      "schema": "sibyl-ingest-response/1",
+      "valid": true
+    },
+    {
+      "file": "invalid/response_unknown_reason.json",
+      "schema": "sibyl-ingest-response/1",
+      "valid": false,
+      "error_pointer": "/rejected/0/reason",
+      "why": "reason is the events_rejected set"
+    },
+    {
+      "file": "invalid/response_negative_accepted.json",
+      "schema": "sibyl-ingest-response/1",
+      "valid": false,
+      "error_pointer": "/accepted",
+      "why": "accepted >= 0"
+    },
+    {
+      "file": "invalid/response_missing_replayed.json",
+      "schema": "sibyl-ingest-response/1",
+      "valid": false,
+      "error_pointer": "",
+      "why": "replayed required"
+    }
+  ]
+}

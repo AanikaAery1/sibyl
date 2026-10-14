@@ -1,0 +1,34 @@
+# S-21 Tenant isolation, steady (ML §8.2; CRITICAL gate: zero leaks). All chaos is in meridian;
+# northstar runs its steady script through the same shared gateway and must stay untouched,
+# while its own traffic must still land in northstar (anti-vacuity).
+id: S-21
+title: Tenant isolation, all chaos in meridian, northstar steady
+smoke: true
+gate_class: hard
+duration_s: 150
+tenants:
+  meridian:
+    agents:
+      support-triage: busy      # tier 2, openai-stub
+      collections-bot: busy     # tier 2, anthropic-stub
+  northstar:
+    default_profile: busy
+chaos:
+  - {at: 20, double: openai-stub, agents: [support-triage], set: {outage: true}}
+  - {at: 20, double: anthropic-stub, agents: [collections-bot], set: {error_rate: 0.8}}
+labels:
+  - {agent: support-triage, kind: onset, t: 20, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+  - {agent: collections-bot, kind: onset, t: 20, failure_mode: provider_outage, masked: true}  # B35: inline fallback rescues every call
+expect:
+  - predict: {agent: support-triage, rule: L5, by_t: 120}
+    note: "B35: masked by inline fallback and no status page flips, so the leading fallback-pressure alert is the signal; nothing is failed over"
+  - no_action: {agent: support-triage, states: [failed_over]}
+  - isolated: {tenant: meridian}
+  - isolated: {tenant: northstar}
+  - isolated: {tenant: sandbox}
+  - observed: {tenant: northstar}
+  - quiet: {tenant: northstar}
+  - scores_at_least: {tenant: northstar, min: 90}
+  - explainable: {}
+  - no_action: {agent: northstar/intake-assistant}
+  - no_action: {agent: northstar/claims-coder}

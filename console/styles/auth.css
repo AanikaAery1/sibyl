@@ -1,0 +1,49 @@
+/* ── Sign-in (live mode) ───────────────────────────────────────────────────
+   One white panel on the cool ground, nothing else on the page. No glass: there is no layer
+   underneath it. Tokens only. */
+.signin {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--s-8) var(--gutter);
+}
+.signin-card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  padding: clamp(24px, 6vw, 40px);
+  animation: signin-in var(--dur-enter) var(--ease-spring) both;
+}
+.signin-card .brand {
+  padding: 0;
+}
+.signin-card .large-title {
+  font-size: clamp(28px, 4vw, 34px);
+}
+.signin-card form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.signin-card .input {
+  min-height: 44px;
+  font-size: var(--fs-headline);
+}
+.signin-foot {
+  font-size: var(--fs-footnote);
+  color: var(--text-3);
+  line-height: var(--lh-read);
+}
+@keyframes signin-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signin-card {
+    animation: none;
+  }
+}

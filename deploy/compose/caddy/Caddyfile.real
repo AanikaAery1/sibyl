@@ -1,0 +1,134 @@
+# Caddy for the REAL deployment (deploy/compose/docker-compose.real.yml, `make up`).
+#
+# Same routes as ./Caddyfile (the demo stack); what differs is configurable from the compose env
+# (deploy/compose/.env.real, written by deploy/compose/real.sh):
+#
+#   SIBYL_SITE_HOST         the host name Caddy serves and issues certificates for
+#                           (default localhost; e.g. sibyl.example.com)
+#   SIBYL_TLS               `internal` (Caddy's local CA, the default), an email address (ACME:
+#                           Let's Encrypt / ZeroSSL; needs a public DNS name and port 443), or
+#                           "/certs/fullchain.pem /certs/privkey.pem" (your own certificate,
+#                           mounted from SIBYL_TLS_CERT_DIR)
+#   SIBYL_PUBLIC_AUTHORITY  host[:port] of SIBYL_PUBLIC_URL, the origin browsers use. Sent to
+#                           the console as X-Forwarded-Host so its CSRF origin check accepts the
+#                           public origin even when a forwarding proxy (GitHub Codespaces, a load
+#                           balancer) rewrites Host to localhost.
+#
+# The inner listener ports stay 8443/8444/8445; compose maps them to the host.
+
+{
+	admin off
+	auto_https disable_redirects
+	skip_install_trust
+	# Clients that send no SNI (some forwarding proxies) get the site certificate.
+	default_sni {$SIBYL_SITE_HOST:localhost}
+	servers {
+		protocols h1 h2
+	}
+}
+
+(common) {
+	tls {$SIBYL_TLS:internal}
+	encode zstd gzip
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Client address for upstreams (M4): overwrite X-Forwarded-For with the peer, drop the other
+# client-settable forwarding headers. api, ingest and gateway trust X-Forwarded-For only from
+# Caddy's pinned address. If you put a load balancer in front of Caddy, its address becomes the
+# peer; see docs/setup/SETUP.md ("Behind a load balancer").
+(client_ip) {
+	header_up X-Forwarded-For {remote_host}
+	header_up -Forwarded
+	header_up -X-Real-IP
+}
+
+# The console's own origin is the public one, whatever Host a forwarding proxy sent.
+(public_origin) {
+	header_up X-Forwarded-Host {$SIBYL_PUBLIC_AUTHORITY:localhost:8443}
+	header_up X-Forwarded-Proto https
+}
+
+https://{$SIBYL_SITE_HOST:localhost}:8443 {
+	import common
+
+	handle /api/v1/policy/credentials* {
+		respond 404
+	}
+	handle /api/bff/* {
+		request_body {
+			max_size 4MB
+		}
+		reverse_proxy console:3000 {
+			import client_ip
+			import public_origin
+			flush_interval -1
+		}
+	}
+	handle /api/v1/events/stream {
+		reverse_proxy api:8000 {
+			import client_ip
+			flush_interval -1
+		}
+	}
+	handle /api/* {
+		request_body {
+			max_size 4MB
+		}
+		reverse_proxy api:8000 {
+			import client_ip
+		}
+	}
+	handle /.well-known/sibyl-keys.json {
+		reverse_proxy api:8000 {
+			import client_ip
+		}
+	}
+	# The bundled dex (absent when SIBYL_OIDC_ISSUER names your own IdP: 502 here, unused).
+	handle /dex/* {
+		reverse_proxy dex:5556 {
+			import client_ip
+		}
+	}
+	handle {
+		header X-Frame-Options DENY
+		reverse_proxy console:3000 {
+			import client_ip
+			import public_origin
+		}
+	}
+}
+
+https://{$SIBYL_SITE_HOST:localhost}:8444 {
+	import common
+	reverse_proxy gateway:8080 {
+		import client_ip
+		flush_interval -1
+		transport http {
+			read_timeout 10m
+		}
+	}
+}
+
+https://{$SIBYL_SITE_HOST:localhost}:8445 {
+	import common
+	request_body {
+		max_size 17MB
+	}
+	reverse_proxy ingest:8001 {
+		import client_ip
+	}
+}
+
+http://:8081 {
+	respond /healthz "ok" 200
+	respond 404
+}

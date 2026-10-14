@@ -1,0 +1,125 @@
+# Caddy: TLS termination for the Phase 1 stack (ARCHITECTURE "Secrets, TLS: .env, Caddy").
+#
+# Three TLS listeners on localhost, one per surface (API 1: gateway, ingest and api are
+# separate hosts and both gateway and ingest own `/v1/*`). The host ports are offset
+# per worktree by compose; Caddy matches on hostname, so the inner ports stay fixed.
+# Certificates come from Caddy's internal CA. Trust its root once:
+#   docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./sibyl-local-root.crt
+# and point SIBYL_API_CA / SSL_CERT_FILE at it for SDK and CLI use.
+
+{
+	admin off
+	auto_https disable_redirects
+	local_certs
+	skip_install_trust
+	servers {
+		protocols h1 h2
+	}
+}
+
+(common) {
+	tls internal
+	encode zstd gzip
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Client address for upstreams (M4). Caddy trusts no proxy in front of it, so the peer address
+# is the client: overwrite (never append to) X-Forwarded-For and drop the other client-settable
+# forwarding headers. api, ingest and gateway trust X-Forwarded-For only from Caddy's pinned
+# address (SIBYL_TRUSTED_PROXIES in docker-compose.yml).
+(client_ip) {
+	header_up X-Forwarded-For {remote_host}
+	header_up -Forwarded
+	header_up -X-Real-IP
+}
+
+# Console + control-plane API + OIDC issuer share one origin, so the BFF cookie is
+# first-party and the dex issuer is https://localhost:<port>/dex.
+https://localhost:8443 {
+	import common
+
+	# Gateway-only route: the sealed credential bundle. The gateway calls http://api:8000 on
+	# the edge network, so the public origin never serves it (L10). The signed snapshot and
+	# the key set stay public (B18): the SDK polls them with its API key to honour kills.
+	handle /api/v1/policy/credentials* {
+		respond 404
+	}
+	# Console BFF (Next.js route handlers) on the console origin; must precede /api/*.
+	# Unbuffered: the BFF relays the live event stream (SSE).
+	handle /api/bff/* {
+		request_body {
+			max_size 4MB
+		}
+		reverse_proxy console:3000 {
+			import client_ip
+			flush_interval -1
+		}
+	}
+	handle /api/v1/events/stream {
+		reverse_proxy api:8000 {
+			import client_ip
+			flush_interval -1
+		}
+	}
+	handle /api/* {
+		request_body {
+			max_size 4MB
+		}
+		reverse_proxy api:8000 {
+			import client_ip
+		}
+	}
+	handle /.well-known/sibyl-keys.json {
+		reverse_proxy api:8000 {
+			import client_ip
+		}
+	}
+	handle /dex/* {
+		reverse_proxy dex:5556 {
+			import client_ip
+		}
+	}
+	handle {
+		header X-Frame-Options DENY
+		reverse_proxy console:3000 {
+			import client_ip
+		}
+	}
+}
+
+# Gateway data plane (OpenAI-compatible). Streaming responses must not be buffered.
+https://localhost:8444 {
+	import common
+	reverse_proxy gateway:8080 {
+		import client_ip
+		flush_interval -1
+		transport http {
+			read_timeout 10m
+		}
+	}
+}
+
+# Ingest: OTLP/HTTP and sibyl-event/1 batches (16 MiB raw per batch, API 3).
+https://localhost:8445 {
+	import common
+	request_body {
+		max_size 17MB
+	}
+	reverse_proxy ingest:8001 {
+		import client_ip
+	}
+}
+
+# Container-internal health endpoint (not published).
+http://:8081 {
+	respond /healthz "ok" 200
+	respond 404
+}

@@ -1,0 +1,556 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sibyl.dev/schemas/sibyl-feature-snapshot/1",
+  "title": "sibyl-feature-snapshot/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "feature_snapshot_ref",
+    "tenant_id",
+    "agent_id",
+    "as_of",
+    "feature_set",
+    "grains",
+    "static",
+    "observation_coverage"
+  ],
+  "properties": {
+    "schema": {
+      "const": "sibyl-feature-snapshot/1"
+    },
+    "feature_snapshot_ref": {
+      "type": "string",
+      "pattern": "^fs_[0-9a-f-]{36}$"
+    },
+    "tenant_id": {
+      "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/uuid"
+    },
+    "agent_id": {
+      "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/uuid"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time",
+      "description": "No event with ts > as_of contributed"
+    },
+    "feature_set": {
+      "type": "string",
+      "pattern": "^features/v\\d+$"
+    },
+    "grains": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "1m",
+        "5m",
+        "15m",
+        "1h"
+      ],
+      "properties": {
+        "1m": {
+          "$ref": "#/$defs/grain"
+        },
+        "5m": {
+          "$ref": "#/$defs/grain"
+        },
+        "15m": {
+          "$ref": "#/$defs/grain"
+        },
+        "1h": {
+          "$ref": "#/$defs/grain"
+        }
+      }
+    },
+    "static": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tier",
+        "provider",
+        "model",
+        "fail_mode",
+        "hour_of_day_utc",
+        "day_of_week_utc"
+      ],
+      "properties": {
+        "tier": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "provider": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "fail_mode": {
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-sibyl-enum": "FailMode"
+        },
+        "routing_state": {
+          "enum": [
+            "active",
+            "degraded",
+            "awaiting_approval",
+            "failed_over",
+            "failing_back",
+            "quarantined",
+            "killed"
+          ],
+          "x-sibyl-enum": "RoutingState"
+        },
+        "breaker_state": {
+          "enum": [
+            "closed",
+            "open",
+            "half_open"
+          ],
+          "x-sibyl-enum": "BreakerState"
+        },
+        "provider_status": {
+          "enum": [
+            "operational",
+            "degraded_performance",
+            "partial_outage",
+            "major_outage",
+            "maintenance",
+            "unknown"
+          ],
+          "x-sibyl-enum": "ProviderStatus"
+        },
+        "budget_headroom": {
+          "type": "number"
+        },
+        "model_context_limit": {
+          "type": "integer"
+        },
+        "days_to_model_deprecation": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "days_to_credential_expiry": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "hour_of_day_utc": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23
+        },
+        "day_of_week_utc": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "agent_age_days": {
+          "type": "number"
+        },
+        "peer_group": {
+          "type": "string",
+          "description": "Cold-start baseline group id"
+        }
+      }
+    },
+    "observation_coverage": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "baseline_ref": {
+      "type": "string",
+      "description": "Which learned or peer baseline was used for *_vs_baseline features"
+    }
+  },
+  "$defs": {
+    "grain": {
+      "type": "object",
+      "description": "Flat numeric feature map; keys registered in features/vN (ML §2). Missing key = not computable in this grain. Listed keys are the registered features/v1 names; ewma_*, cusum_* and other additive keys validate through additionalProperties.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{1,60}$"
+      },
+      "additionalProperties": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "properties": {
+        "request_count": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "error_rate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "error_rate_429": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "error_rate_5xx": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "error_rate_timeout": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "latency_p50_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "latency_p95_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "latency_p99_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "latency_p95_vs_baseline": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ttfb_p95_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tokens_in_mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tokens_out_mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tokens_out_cv": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "output_chars_mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cost_usd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cost_per_task_usd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ratio_429": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "retry_mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "inline_fallback_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ratelimit_headroom_min": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "finish_length_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "finish_tool_calls_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "context_utilisation_p95": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tool_call_count": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tool_error_rate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tool_seq_entropy": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tool_seq_repeat_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "task_count": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "task_success_rate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "task_steps_p95": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "handoff_count": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "checkpoint_age_p95_s": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "feedback_mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "route_changes": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "policy_stale_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "error_rate_slope": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "latency_p95_slope": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cost_slope": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "error_rate_blocked": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "consecutive_errors": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "breaker_open_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "late_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "finish_content_filter_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "empty_output_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "output_chars_vs_baseline": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tokens_out_vs_baseline": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "schema_validation_fail_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "task_failure_rate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "feedback_negative_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "feedback_count": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "handoff_rate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "undeclared_tool_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "undeclared_data_source_ratio": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "provider_error_rate_fleet": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "provider_latency_p95_fleet_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "provider_429_fleet": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "model_error_rate_fleet": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "provider_agents_degraded_fleet": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "provider_status_code": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "provider_status_age_s": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "provider_probe_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

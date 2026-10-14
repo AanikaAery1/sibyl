@@ -1,0 +1,25 @@
+# S-08 Silent degradation: refusals (ML §8.2; R37, R6). The double answers 200 with refusal
+# text on 40 % of calls and finish_reason=stop: only content tells a refusal from an answer.
+id: S-08
+title: Silent degradation, refusals with finish_reason=stop, tier 2
+gate_class: silent
+duration_s: 300
+tenants:
+  meridian:
+    agents:
+      escalation-router: busy   # tier 2, openai-stub
+chaos:
+  - {at: 30, double: openai-stub, agents: [escalation-router], set: {refusal_rate: 0.4}}
+labels:
+  - {agent: escalation-router, kind: onset, t: 30, failure_mode: quality_collapse}
+expect:
+  - detect: {agent: escalation-router, rule: R6, by_t: 300}
+  - no_alert: {agent: escalation-router, rule: [R1, R3]}
+    note: "this is the point: error rate stays quiet while quality collapses"
+  - failure_mode: {agent: escalation-router, mode: quality_collapse}
+  - recommended_action: {agent: escalation-router, action: watch}
+    note: "ML §3.6: quality_proxy -> watch on tier 2 (qa-expert said reroute_to_fallback)"
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}
+  - action: {agent: escalation-router, to_state: degraded, by_t: 300}

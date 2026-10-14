@@ -1,0 +1,20 @@
+# S-23 Prompt injection pattern (ML §8.2; ROADMAP M4 4.6): the agent's policy blocks a call and
+# the injection marker shows up; tier 1 quarantine is requested for approval, never auto-killed.
+id: S-23
+title: Prompt injection pattern, tier 1
+requires: [S]
+gate_class: none
+duration_s: 300
+tenants:
+  meridian:
+    agents:
+      quote-assistant: sdk_steady
+chaos:
+  - {at: 60, actor: quote-assistant, set: {inject_marker: true}}
+labels:
+  - {agent: quote-assistant, kind: onset, t: 60, failure_mode: prompt_injection}
+expect:
+  - failure_mode: {agent: quote-assistant, mode: prompt_injection}
+  - tier_gate: {agent: quote-assistant, mode: approval}
+  - no_action: {agent: quote-assistant, states: [killed]}
+  - explainable: {}

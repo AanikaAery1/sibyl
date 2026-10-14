@@ -1,0 +1,119 @@
+# Sibyl CI (D54): the same gates as ci/run.sh, on GitHub-hosted runners.
+#   python   ruff, format, import-linter, mypy, pytest + coverage (Postgres 17 service), licences
+#   console  typecheck, lint, unit tests, performance budgets
+# Local equivalent: `make db-up && make ci`, and the npm scripts in console/.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_SYSTEM_CERTS: "1"
+  FORCE_COLOR: "1"
+
+jobs:
+  python:
+    name: python (lint, types, tests, licences)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17.6-bookworm
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      SIBYL_PG_ADMIN_DSN: postgresql://postgres@localhost:5433/postgres
+      SIBYL_REQUIRE_PG: "1"
+      PGBIN: /usr/lib/postgresql/17/bin
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Postgres 17 client tools, htpasswd
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends postgresql-client-17 apache2-utils
+          "$PGBIN/pg_isready" -d "$SIBYL_PG_ADMIN_DSN"
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Sync
+        run: bash ci/run.sh --only sync
+      - name: Ruff
+        run: bash ci/run.sh --only ruff
+      - name: Format
+        run: bash ci/run.sh --only format
+      - name: Import contracts
+        run: bash ci/run.sh --only imports
+      - name: Mypy
+        run: bash ci/run.sh --only mypy
+      - name: Pytest + coverage
+        run: bash ci/run.sh --only pytest
+      - name: Licence gate
+        run: bash ci/run.sh --only licences
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-reports
+          path: |
+            ci/.out/junit.xml
+            ci/.out/coverage.xml
+            ci/.out/licences.md
+          if-no-files-found: ignore
+
+  console:
+    name: console (types, lint, unit, budgets)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: console
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      # console/.npmrc names a local corporate CA file; runners use the system bundle.
+      npm_config_cafile: /etc/ssl/certs/ca-certificates.crt
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: console/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:unit
+      - name: Build and serve (demo mode)
+        run: |
+          npx next build
+          cp -R .next/static .next/standalone/.next/static
+          (cd .next/standalone && SIBYL_CONSOLE_MODE=demo PORT=3000 HOSTNAME=127.0.0.1 node server.js > ../server.log 2>&1 &)
+          for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/healthz >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:3000/healthz
+      - run: npx playwright install --with-deps chromium
+      - name: Performance budgets
+        run: BASE_URL=http://127.0.0.1:3000 npm run test:budget

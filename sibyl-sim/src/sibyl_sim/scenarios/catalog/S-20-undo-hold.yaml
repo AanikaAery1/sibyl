@@ -1,0 +1,29 @@
+# S-20 Undo and operator hold (ML §8.2; ROADMAP M2 2.5; D21): S-01, then the Operator undoes the
+# failover within 2 minutes while the outage continues. Rule actors are held off for 30 min;
+# clear_hold by the owner resumes automation (so a second failover after it is correct).
+id: S-20
+title: Undo and operator hold, tier 2
+requires: [S]
+gate_class: hard
+duration_s: 600
+# B35: tier 2 inline-falls back to its vaulted alt provider, which fully masks the outage and
+# starts no saga (nothing to undo); the agent opts out per request (X-Sibyl-Fallback: none).
+profiles:
+  busy_no_inline: {rps: 0.5, fallback: none}
+tenants:
+  meridian:
+    agents:
+      support-triage: busy_no_inline
+chaos:
+  - {at: 30, double: openai-stub, agents: [support-triage], set: {outage: true}}
+labels:
+  - {agent: support-triage, kind: onset, t: 30, failure_mode: provider_outage}
+expect:
+  - action: {agent: support-triage, to_state: failed_over, actor: rule, by_t: 120}
+  - no_action: {agent: support-triage, states: [failed_over], from_t: 151, to_t: 540}
+    note: "operator_hold_until blocks rule actors after the undo until clear_hold"
+  - explainable: {}
+  - audit_has: {verbs: [failover.undone]}
+personas:
+  - {at: 150, persona: operator, do: undo, agent: support-triage}
+  - {at: 540, persona: admin, do: clear_hold, agent: support-triage}

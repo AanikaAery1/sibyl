@@ -1,0 +1,585 @@
+{
+  "description": "Signed key-set rotation chain (sibyl.policy_snapshot/1 $defs/key_set). TEST-ONLY keys derived from public seeds; never deploy. A verifier pins the first key, then accepts a key set only if it parses strictly, is signed by a key the previous accepted set listed as active (not past not_after), carries a valid Ed25519 signature over JCS(body), has a higher sequence, and every active key it lists was already trusted or was the previous set's next_key. Check order: malformed, unknown_signer, signer_expired, bad_signature, non_monotonic, chain_broken. since_cases are ?since=<sequence> deliveries verified in order on top of the held sets: a sequence that is not exactly the held one + 1 is sequence_gap (checked after non_monotonic, before chain_broken).",
+  "test_signing_seed_sha256_input": "sibyl-test-vector-snapshot-key-{n} (TEST ONLY, never deploy)",
+  "pinned": {
+    "kid": "snap-2026-10-v1",
+    "alg": "Ed25519",
+    "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+    "status": "active",
+    "not_after": "2027-01-01T00:00:00.000Z"
+  },
+  "cases": [
+    {
+      "name": "valid_rotation",
+      "now": "2026-12-01T00:00:10.000Z",
+      "steps": [
+        {
+          "expected": "ok",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+            "body": {
+              "sequence": 1,
+              "issued_at": "2026-10-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "active",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-11-v1",
+                "alg": "Ed25519",
+                "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+              }
+            }
+          }
+        },
+        {
+          "expected": "ok",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "N8wrVg24mLbpX7MwZOuNSm1bAWUgqMvcCapQ2gnBS2EoXYJ3c6-Mr-e72xutoTnZFVPZgb3uCFd9Oi5zcnHGDg",
+            "body": {
+              "sequence": 2,
+              "issued_at": "2026-11-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-11-v1",
+                  "alg": "Ed25519",
+                  "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo",
+                  "status": "active"
+                },
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "retiring",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-12-v1",
+                "alg": "Ed25519",
+                "public_key": "GmORs-D_dHf-P25PDvXkAckXI0GD6A-NoUjJTXgoxjA"
+              }
+            }
+          }
+        },
+        {
+          "expected": "ok",
+          "document": {
+            "kid": "snap-2026-11-v1",
+            "alg": "Ed25519",
+            "sig": "1dib6iYw-0RRgfNQADFLQ_VeqE1DILX0GFFkovNYu0zfY4wmTXpYBpIsnpL4N6c9paUFpbURyA2eMV8KFHZZDw",
+            "body": {
+              "sequence": 3,
+              "issued_at": "2026-12-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-11-v1",
+                  "alg": "Ed25519",
+                  "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo",
+                  "status": "active"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-12-v1",
+                "alg": "Ed25519",
+                "public_key": "GmORs-D_dHf-P25PDvXkAckXI0GD6A-NoUjJTXgoxjA"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "broken_chain",
+      "now": "2026-11-01T00:00:10.000Z",
+      "steps": [
+        {
+          "expected": "ok",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+            "body": {
+              "sequence": 1,
+              "issued_at": "2026-10-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "active",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-11-v1",
+                "alg": "Ed25519",
+                "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+              }
+            }
+          }
+        },
+        {
+          "expected": "chain_broken",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "4plXR9QQISfe1lt73qkD6eWkLAuPhXn5NVCbJOR2V3LEN4cnMR8lZEm4tuyDIv8AFhrUOoWJXpZ3yctRwORtBQ",
+            "body": {
+              "sequence": 2,
+              "issued_at": "2026-11-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-rogue",
+                  "alg": "Ed25519",
+                  "public_key": "2ssM46flFC3ncbQODEa_tyRLafGwG4sHWbhwfbJYOSs",
+                  "status": "active"
+                },
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "retiring",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-12-v1",
+                "alg": "Ed25519",
+                "public_key": "GmORs-D_dHf-P25PDvXkAckXI0GD6A-NoUjJTXgoxjA"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "unsigned_next_key",
+      "now": "2026-10-01T00:00:10.000Z",
+      "steps": [
+        {
+          "expected": "bad_signature",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+            "body": {
+              "sequence": 1,
+              "issued_at": "2026-10-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "active",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-rogue",
+                "alg": "Ed25519",
+                "public_key": "2ssM46flFC3ncbQODEa_tyRLafGwG4sHWbhwfbJYOSs"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "retired_signer",
+      "now": "2026-12-01T00:00:10.000Z",
+      "steps": [
+        {
+          "expected": "ok",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+            "body": {
+              "sequence": 1,
+              "issued_at": "2026-10-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "active",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-11-v1",
+                "alg": "Ed25519",
+                "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+              }
+            }
+          }
+        },
+        {
+          "expected": "ok",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "N8wrVg24mLbpX7MwZOuNSm1bAWUgqMvcCapQ2gnBS2EoXYJ3c6-Mr-e72xutoTnZFVPZgb3uCFd9Oi5zcnHGDg",
+            "body": {
+              "sequence": 2,
+              "issued_at": "2026-11-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-11-v1",
+                  "alg": "Ed25519",
+                  "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo",
+                  "status": "active"
+                },
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "retiring",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-12-v1",
+                "alg": "Ed25519",
+                "public_key": "GmORs-D_dHf-P25PDvXkAckXI0GD6A-NoUjJTXgoxjA"
+              }
+            }
+          }
+        },
+        {
+          "expected": "unknown_signer",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "SewQs6jZGo2U5nEw_LJfzNQWQcRz8nF128KF3k7PwJeU17umiA1yyvVqN5BYneQda5SVOOIz6Lv5vbLzZ-RSCg",
+            "body": {
+              "sequence": 3,
+              "issued_at": "2026-12-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "active",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-12-v1",
+                "alg": "Ed25519",
+                "public_key": "GmORs-D_dHf-P25PDvXkAckXI0GD6A-NoUjJTXgoxjA"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "replayed_sequence",
+      "now": "2026-10-01T00:00:10.000Z",
+      "steps": [
+        {
+          "expected": "ok",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+            "body": {
+              "sequence": 1,
+              "issued_at": "2026-10-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "active",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-11-v1",
+                "alg": "Ed25519",
+                "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+              }
+            }
+          }
+        },
+        {
+          "expected": "non_monotonic",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+            "body": {
+              "sequence": 1,
+              "issued_at": "2026-10-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "active",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-11-v1",
+                "alg": "Ed25519",
+                "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "signer_expired",
+      "now": "2027-01-02T00:00:00.000Z",
+      "steps": [
+        {
+          "expected": "signer_expired",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+            "body": {
+              "sequence": 1,
+              "issued_at": "2026-10-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "active",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-11-v1",
+                "alg": "Ed25519",
+                "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "unsigned_legacy_shape",
+      "now": "2026-10-01T00:00:10.000Z",
+      "steps": [
+        {
+          "expected": "malformed",
+          "document": {
+            "keys": [
+              {
+                "kid": "snap-2026-10-v1",
+                "alg": "Ed25519",
+                "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                "status": "active"
+              }
+            ],
+            "next_key": {
+              "kid": "snap-2026-11-v1",
+              "alg": "Ed25519",
+              "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "duplicate_body",
+      "now": "2026-11-01T00:00:10.000Z",
+      "steps": [
+        {
+          "expected": "ok",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+            "body": {
+              "sequence": 1,
+              "issued_at": "2026-10-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "active",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-11-v1",
+                "alg": "Ed25519",
+                "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+              }
+            }
+          }
+        },
+        {
+          "expected": "malformed",
+          "raw": "{\"kid\":\"snap-2026-10-v1\",\"alg\":\"Ed25519\",\"sig\":\"N8wrVg24mLbpX7MwZOuNSm1bAWUgqMvcCapQ2gnBS2EoXYJ3c6-Mr-e72xutoTnZFVPZgb3uCFd9Oi5zcnHGDg\",\"body\":{\"issued_at\":\"2026-11-01T00:00:00.000Z\",\"keys\":[{\"alg\":\"Ed25519\",\"kid\":\"snap-2026-11-v1\",\"public_key\":\"pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo\",\"status\":\"active\"},{\"alg\":\"Ed25519\",\"kid\":\"snap-2026-10-v1\",\"not_after\":\"2027-01-01T00:00:00.000Z\",\"public_key\":\"7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ\",\"status\":\"retiring\"}],\"next_key\":{\"alg\":\"Ed25519\",\"kid\":\"snap-2026-12-v1\",\"public_key\":\"GmORs-D_dHf-P25PDvXkAckXI0GD6A-NoUjJTXgoxjA\"},\"sequence\":2},\"body\":{\"issued_at\":\"2026-11-01T00:00:00.000Z\",\"keys\":[{\"alg\":\"Ed25519\",\"kid\":\"snap-rogue\",\"public_key\":\"2ssM46flFC3ncbQODEa_tyRLafGwG4sHWbhwfbJYOSs\",\"status\":\"active\"},{\"alg\":\"Ed25519\",\"kid\":\"snap-2026-10-v1\",\"not_after\":\"2027-01-01T00:00:00.000Z\",\"public_key\":\"7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ\",\"status\":\"retiring\"}],\"next_key\":{\"alg\":\"Ed25519\",\"kid\":\"snap-2026-12-v1\",\"public_key\":\"GmORs-D_dHf-P25PDvXkAckXI0GD6A-NoUjJTXgoxjA\"},\"sequence\":2}}"
+        }
+      ]
+    }
+  ],
+  "since_cases": [
+    {
+      "name": "contiguous_catch_up",
+      "now": "2026-12-01T00:00:10.000Z",
+      "held": [
+        {
+          "kid": "snap-2026-10-v1",
+          "alg": "Ed25519",
+          "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+          "body": {
+            "sequence": 1,
+            "issued_at": "2026-10-01T00:00:00.000Z",
+            "keys": [
+              {
+                "kid": "snap-2026-10-v1",
+                "alg": "Ed25519",
+                "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                "status": "active",
+                "not_after": "2027-01-01T00:00:00.000Z"
+              }
+            ],
+            "next_key": {
+              "kid": "snap-2026-11-v1",
+              "alg": "Ed25519",
+              "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "expected": "ok",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "N8wrVg24mLbpX7MwZOuNSm1bAWUgqMvcCapQ2gnBS2EoXYJ3c6-Mr-e72xutoTnZFVPZgb3uCFd9Oi5zcnHGDg",
+            "body": {
+              "sequence": 2,
+              "issued_at": "2026-11-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-11-v1",
+                  "alg": "Ed25519",
+                  "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo",
+                  "status": "active"
+                },
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "retiring",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-12-v1",
+                "alg": "Ed25519",
+                "public_key": "GmORs-D_dHf-P25PDvXkAckXI0GD6A-NoUjJTXgoxjA"
+              }
+            }
+          }
+        },
+        {
+          "expected": "ok",
+          "document": {
+            "kid": "snap-2026-11-v1",
+            "alg": "Ed25519",
+            "sig": "1dib6iYw-0RRgfNQADFLQ_VeqE1DILX0GFFkovNYu0zfY4wmTXpYBpIsnpL4N6c9paUFpbURyA2eMV8KFHZZDw",
+            "body": {
+              "sequence": 3,
+              "issued_at": "2026-12-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-11-v1",
+                  "alg": "Ed25519",
+                  "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo",
+                  "status": "active"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-12-v1",
+                "alg": "Ed25519",
+                "public_key": "GmORs-D_dHf-P25PDvXkAckXI0GD6A-NoUjJTXgoxjA"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "sequence_gap",
+      "now": "2026-11-01T00:00:10.000Z",
+      "held": [
+        {
+          "kid": "snap-2026-10-v1",
+          "alg": "Ed25519",
+          "sig": "4nSQr3gnt4itrnrJLm4pWDFsnlvfy-DdKHNe4jzENJgBFrVmNP1jSu3YVt-G_ANj0ObJQVyPoAKYw40IUi52BA",
+          "body": {
+            "sequence": 1,
+            "issued_at": "2026-10-01T00:00:00.000Z",
+            "keys": [
+              {
+                "kid": "snap-2026-10-v1",
+                "alg": "Ed25519",
+                "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                "status": "active",
+                "not_after": "2027-01-01T00:00:00.000Z"
+              }
+            ],
+            "next_key": {
+              "kid": "snap-2026-11-v1",
+              "alg": "Ed25519",
+              "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "expected": "sequence_gap",
+          "document": {
+            "kid": "snap-2026-10-v1",
+            "alg": "Ed25519",
+            "sig": "3u4rl3nFrxA-pPMwnvtK61iQSJPz3Nr1_xru9gSgiYlbH30v4d7qyX8tDk67udGcMzm8cin0CKdUtVDV0fSDCQ",
+            "body": {
+              "sequence": 3,
+              "issued_at": "2026-12-01T00:00:00.000Z",
+              "keys": [
+                {
+                  "kid": "snap-2026-10-v1",
+                  "alg": "Ed25519",
+                  "public_key": "7bhBjgmAZPqpaPWOwzI4xLPD-LexVSwGNgNpKcE61xQ",
+                  "status": "active",
+                  "not_after": "2027-01-01T00:00:00.000Z"
+                }
+              ],
+              "next_key": {
+                "kid": "snap-2026-11-v1",
+                "alg": "Ed25519",
+                "public_key": "pTihpAAiLsQ_tT4UTrU3DXqaXuIY6TTUEZ9bPc6vhYo"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sibyl.dev/schemas/sibyl-ingest-response/1",
+  "title": "sibyl-ingest-response/1",
+  "description": "202 body of POST /v1/events (API §4.4). Never echoes content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "batch_id",
+    "accepted",
+    "rejected",
+    "warnings",
+    "replayed"
+  ],
+  "properties": {
+    "schema": {
+      "const": "sibyl-ingest-response/1"
+    },
+    "batch_id": {
+      "$ref": "https://sibyl.dev/schemas/sibyl-event/1#/$defs/uuidv7"
+    },
+    "accepted": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "rejected": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/rejection"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "string",
+        "maxLength": 500
+      }
+    },
+    "replayed": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "rejection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "reason"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999
+        },
+        "event_id": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "reason": {
+          "enum": [
+            "schema_invalid",
+            "missing_required",
+            "unknown_type",
+            "late_contribution",
+            "outside_retention",
+            "no_partition",
+            "capture_policy_missing",
+            "tenant_erasing",
+            "env_mismatch",
+            "agent_not_permitted"
+          ],
+          "x-sibyl-enum": "RejectReason"
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    }
+  }
+}

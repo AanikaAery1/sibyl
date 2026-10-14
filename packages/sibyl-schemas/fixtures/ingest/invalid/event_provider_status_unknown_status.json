@@ -1,0 +1,32 @@
+{
+  "schema": "sibyl-event/1",
+  "event_id": "019276a3-000d-7000-8000-00000000000d",
+  "type": "provider.status",
+  "tenant_id": "00000000-0000-7000-8000-000000000000",
+  "agent_id": null,
+  "task_id": null,
+  "call_id": null,
+  "ts": "2026-10-09T09:14:35.001Z",
+  "observed_at": "2026-10-09T09:14:36.420Z",
+  "source": "worker",
+  "emitter_id": "worker:w-1:512",
+  "seq": 1043,
+  "capture_mode": "full",
+  "redaction_profile": {
+    "id": "secrets_only",
+    "version": 1,
+    "rules_fired": [],
+    "secrets_scrubbed": 0
+  },
+  "policy_state": {
+    "state": "not_applicable"
+  },
+  "attrs": {
+    "provider": "openai",
+    "component": "chat-completions",
+    "status": "down",
+    "feed": "statuspage_json",
+    "incident_id": "inc_7731",
+    "started_at": "2026-10-09T09:10:00.000Z"
+  }
+}

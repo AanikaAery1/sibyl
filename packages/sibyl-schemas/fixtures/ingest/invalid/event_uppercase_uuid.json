@@ -1,0 +1,48 @@
+{
+  "schema": "sibyl-event/1",
+  "event_id": "019276a3-0002-7000-8000-000000000002",
+  "type": "tool.call",
+  "tenant_id": "0192767F-0000-7000-8000-00000000A001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "task_id": "019276a0-9c1d-7e3f-9a52-1b2c3d4e5f60",
+  "call_id": null,
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "7a1b2c3d4e5f6072",
+  "ts": "2026-10-09T09:14:35.001Z",
+  "observed_at": "2026-10-09T09:14:36.420Z",
+  "source": "sdk",
+  "emitter_id": "sdk:quote-worker-3:7719",
+  "seq": 1043,
+  "capture_mode": "full",
+  "redaction_profile": {
+    "id": "secrets_only",
+    "version": 1,
+    "rules_fired": [],
+    "secrets_scrubbed": 0
+  },
+  "policy_state": {
+    "state": "fresh",
+    "policy_version": 42,
+    "fail_mode": "open"
+  },
+  "attrs": {
+    "tool_name": "lookup_order",
+    "tool_type": "function",
+    "tool_call_id": "call_8f1",
+    "status": "ok",
+    "latency_ms": 2600.0,
+    "side_effect_class": "read",
+    "args_bytes": 42,
+    "result_bytes": 512,
+    "payload": {
+      "ref": "blob://0192767f-0000-7000-8000-00000000a001/2026-10-09/4bf92f3577b34da6a3ce929d0e0e4736/lookup_order.bin",
+      "sha256": "3fd4955d6c7beae12d47e8f44288a1a1d10ca7a566be0314c9464ee59f388b72",
+      "bytes": 2048,
+      "content_type": "application/vnd.sibyl.genai-content+json",
+      "parts": [
+        "tool_args",
+        "tool_result"
+      ]
+    }
+  }
+}

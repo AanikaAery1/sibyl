@@ -1,0 +1,37 @@
+{
+  "schema": "sibyl-event/1",
+  "event_id": "019276a3-000b-7000-8000-00000000000b",
+  "type": "policy.decision",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "task_id": "019276a0-9c1d-7e3f-9a52-1b2c3d4e5f60",
+  "call_id": null,
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "7a1b2c3d4e5f6072",
+  "ts": "2026-10-09T09:14:35.001Z",
+  "observed_at": "2026-10-09T09:14:36.420Z",
+  "source": "gateway",
+  "emitter_id": "gateway:gw-1:4211",
+  "seq": 1043,
+  "capture_mode": "full",
+  "redaction_profile": {
+    "id": "secrets_only",
+    "version": 1,
+    "rules_fired": [],
+    "secrets_scrubbed": 0
+  },
+  "policy_state": {
+    "state": "expired",
+    "policy_version": 41,
+    "fail_mode": "open",
+    "snapshot_age_s": 412
+  },
+  "attrs": {
+    "action": "allow",
+    "state": "expired",
+    "fail_mode": "open",
+    "reason": "snapshot expired 412 s ago; fail-open agent proceeds",
+    "snapshot_issued_at": "2026-10-09T09:07:43.000Z",
+    "attempt": 1
+  }
+}

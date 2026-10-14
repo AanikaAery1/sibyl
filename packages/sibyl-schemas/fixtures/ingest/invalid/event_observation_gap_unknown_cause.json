@@ -1,0 +1,36 @@
+{
+  "schema": "sibyl-event/1",
+  "event_id": "019276a3-000c-7000-8000-00000000000c",
+  "type": "observation.gap",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": null,
+  "task_id": null,
+  "call_id": null,
+  "ts": "2026-10-09T09:14:35.001Z",
+  "observed_at": "2026-10-09T09:14:36.420Z",
+  "source": "worker",
+  "emitter_id": "worker:w-1:512",
+  "seq": 1043,
+  "capture_mode": "full",
+  "redaction_profile": {
+    "id": "secrets_only",
+    "version": 1,
+    "rules_fired": [],
+    "secrets_scrubbed": 0
+  },
+  "policy_state": {
+    "state": "not_applicable"
+  },
+  "attrs": {
+    "emitter_id": "sdk:quote-worker-3:7719",
+    "gap_start": "2026-10-09T09:00:00.000Z",
+    "gap_end": "2026-10-09T09:03:10.000Z",
+    "cause": "network",
+    "status": "closed_with_loss",
+    "events_replayed": 410,
+    "events_dropped": 12,
+    "affected_agent_ids": [
+      "0192767f-0000-7000-8000-00000000c010"
+    ]
+  }
+}

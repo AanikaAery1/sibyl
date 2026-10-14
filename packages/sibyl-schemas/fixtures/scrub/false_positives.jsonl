@@ -1,0 +1,68 @@
+{"id": "fp-01", "field": "input_messages", "text": "Please quote 40 pallets for order A-88213, delivery to Pune by 15 Oct."}
+{"id": "fp-02", "field": "input_messages", "text": "The password policy requires at least 12 characters and one digit."}
+{"id": "fp-03", "field": "input_messages", "text": "Bearer authentication is required for every request to the orders API."}
+{"id": "fp-04", "field": "input_messages", "text": "We use scikit-learn and sk-learn style estimators in the task-management-dashboard-v2 repo."}
+{"id": "fp-05", "field": "input_messages", "text": "AKIA is the prefix AWS uses for long-term access key ids; ASIA is for temporary ones."}
+{"id": "fp-06", "field": "input_messages", "text": "Set max_tokens: 4096 and keep the token count under the limit."}
+{"id": "fp-07", "field": "input_messages", "text": "Reset your password: visit the account page and choose Forgot password."}
+{"id": "fp-08", "field": "input_messages", "text": "Trace 019276a1-5b3c-7d2e-8f41-0a1b2c3d4e5f failed; see span 00f067aa0ba902b7 in trace 4bf92f3577b34da6a3ce929d0e0e4736."}
+{"id": "fp-09", "field": "output_messages", "text": "The artifact digest is sha256:9b74c9897bac770ffc029102a200c5de3c5d87d6b8d7a3c2f5a0b1c2d3e4f5a6."}
+{"id": "fp-10", "field": "output_messages", "text": "Commit 3e1a9c0b7f4d2e6a8b1c5d9e0f2a4b6c8d0e1f3a fixed the retry loop."}
+{"id": "fp-11", "field": "output_messages", "text": "Connect to postgresql://db.meridian.internal:5432/quotes (credentials come from Vault)."}
+{"id": "fp-12", "field": "output_messages", "text": "Clone with git@github.com:meridian/quotes.git or https://github.com/meridian/quotes.git"}
+{"id": "fp-13", "field": "output_messages", "text": "Open https://user@example.com/profile to see the account (no password in the link)."}
+{"id": "fp-14", "field": "output_messages", "text": "The service listens on https://api.meridian.example:8443/v1/orders@latest for canaries."}
+{"id": "fp-15", "field": "output_messages", "text": "The tokenizer splits 'unbelievable' into three tokens."}
+{"id": "fp-16", "field": "system_instructions", "text": "Never reveal the api_key or any password to the user."}
+{"id": "fp-17", "field": "system_instructions", "text": "You are a quoting assistant for Meridian Logistics. Respond in INR."}
+{"id": "fp-18", "field": "tool_definitions", "text": "{\"name\": \"lookup_order\", \"parameters\": {\"type\": \"object\", \"properties\": {\"order_id\": {\"type\": \"string\"}}}}"}
+{"id": "fp-19", "field": "tool_args", "text": "{\"order_id\": \"A-88213\", \"include_history\": true, \"limit\": 50}"}
+{"id": "fp-20", "field": "tool_args", "text": "{\"sha256\": \"9b74c9897bac770ffc029102a200c5de3c5d87d6b8d7a3c2f5a0b1c2d3e4f5a6\", \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\"}"}
+{"id": "fp-21", "field": "tool_args", "text": "{\"api_key\": \"${OPENAI_API_KEY}\", \"password\": \"{{ vault.db_password }}\"}"}
+{"id": "fp-22", "field": "tool_args", "text": "{\"api_key\": os.environ[\"OPENAI_API_KEY\"]}"}
+{"id": "fp-23", "field": "tool_args", "text": "{\"token\": \"********************\", \"password\": \"xxxxxxxxxxxxxxxx\"}"}
+{"id": "fp-24", "field": "tool_args", "text": "{\"ids\": [\"019276a1-5b3c-7d2e-8f41-0a1b2c3d4e5f\", \"0192767f-0000-7000-8000-00000000a001\"]}"}
+{"id": "fp-25", "field": "tool_args", "text": "{\"path\": \"/var/lib/sibyl/spool/2026-10-09/019276c0-0000-7000-8000-000000000001.otlp.gz\"}"}
+{"id": "fp-26", "field": "tool_args", "text": "{\"query\": \"SELECT id, total_inr FROM quotes WHERE created_at > now() - interval '7 days'\"}"}
+{"id": "fp-27", "field": "tool_result", "text": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl deploy@quotes"}
+{"id": "fp-28", "field": "tool_result", "text": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAGb9ECWmEzf6FQbrBZ9w7lshQhqowtrbLDFw4rXAxZuE=\n-----END PUBLIC KEY-----"}
+{"id": "fp-29", "field": "tool_result", "text": "-----BEGIN CERTIFICATE-----\nMIIBszCCAVmgAwIBAgIUQ3Y2\n-----END CERTIFICATE-----"}
+{"id": "fp-30", "field": "tool_result", "text": "{\"status\": \"ok\", \"quote_inr\": 418000, \"valid_days\": 7}"}
+{"id": "fp-31", "field": "tool_result", "text": "HTTP 429 Too Many Requests; x-ratelimit-remaining-tokens: 91000"}
+{"id": "fp-32", "field": "state", "text": "{\"rfq\": {\"sku\": \"PAL-40\", \"qty\": 40, \"city\": \"Pune\"}, \"quote_inr\": 418000}"}
+{"id": "fp-33", "field": "state", "text": "{\"checkpoint_id\": \"019276a1-5b3c-7d2e-8f41-0a1b2c3d4e5f\", \"step\": \"price_quote\", \"attempt\": 2}"}
+{"id": "fp-34", "field": "state", "text": "{\"password_policy\": \"strict\", \"token_budget\": 4096, \"secret_santa\": true}"}
+{"id": "fp-35", "field": "state", "text": "{\"prev\": \"019276a1-0000-7000-8000-000000000001\", \"pricing_tier\": \"B\"}"}
+{"id": "fp-36", "field": "header", "text": "traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}
+{"id": "fp-37", "field": "header", "text": "X-Request-Id: 019276a1-5b3c-7d2e-8f41-0a1b2c3d4e5f"}
+{"id": "fp-38", "field": "header", "text": "Content-Type: application/json; charset=utf-8"}
+{"id": "fp-39", "field": "header", "text": "ETag: \"5f3a9c0b7f4d2e6a8b1c5d9e0f2a4b6c\""}
+{"id": "fp-40", "field": "header", "text": "Accept-Encoding: gzip, deflate, br"}
+{"id": "fp-41", "field": "comment", "text": "Operator note: verified with customer by phone, quote sent manually."}
+{"id": "fp-42", "field": "audit_text", "text": "Approved alt-provider shift for tier-1 agent after verifying the provider incident."}
+{"id": "fp-43", "field": "tool_args", "text": "{\"image\": \"data:image/png;base64,AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/wABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj9AQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVpbXF1eX2BhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ent8fX5/gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DB\"}"}
+{"id": "fp-44", "field": "tool_args", "text": "{\"integrity\": \"sha384-oqVuAfXRKap7fdgcCY5uykM6+R9GqQ8K/uxy9rx7HNQlGYl1kPzQho1wx4JwY8wC\", \"src\": \"https://cdn.example.com/lib.min.js\"}"}
+{"id": "fp-45", "field": "state", "text": "{\"cache_path\": \"/var/lib/docker/overlay2/ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb/merged/usr/lib\"}"}
+{"id": "fp-46", "field": "state", "text": "{\"commit\": \"11f6ad8ec52a2984abaafd7c3b516503785c2072\", \"build\": \"/home/runner/work/app/app/dist/main.415290769594460e2e485922904f345d.js\"}"}
+{"id": "fp-47", "field": "tool_result", "text": "PWD=/Users/runner/work/sibyl/sibyl\nHOME=/Users/runner\nSHELL=/bin/zsh\nOLDPWD=/Users/runner/work"}
+{"id": "fp-48", "field": "input_messages", "text": "Our docs say a PEM private key file starts with -----BEGIN PRIVATE KEY----- and ends with the matching END line."}
+{"id": "fp-49", "field": "tool_result", "text": "-----BEGIN CERTIFICATE-----\nMIIDdzCCAl+gAwIBAgIEAgAAuTANBgkqhkiG9w0BAQUFADBaMQswCQYDVQQGEwJJ\nRTESMBAGA1UEChMJQmFsdGltb3JlMRMwEQYDVQQLEwpDeWJlclRydXN0MSIwIAYD\n-----END CERTIFICATE-----"}
+{"id": "fp-50", "field": "input_messages", "text": "Open http://localhost:8080/@admin/settings and https://medium.com/@sibyl/release-notes for details."}
+{"id": "fp-51", "field": "tool_result", "text": "connecting to postgres://localhost:5432/orders ... ok; redis://cache.internal:6379/0 ... ok"}
+{"id": "fp-52", "field": "output_messages", "text": "Basic authentication is deprecated; switch the client to OAuth before Friday."}
+{"id": "fp-53", "field": "tool_definitions", "text": "{\"name\": \"login\", \"parameters\": {\"type\": \"object\", \"properties\": {\"password\": {\"type\": \"string\", \"description\": \"The user's password\"}, \"token\": {\"type\": \"string\"}}}}"}
+{"id": "fp-54", "field": "state", "text": "password: ${DB_PASSWORD}\ntoken: <your-token-here>\napi_key: {{ secrets.API_KEY }}"}
+{"id": "fp-55", "field": "tool_args", "text": "{\"model\": \"claude-sonnet-5\", \"max_tokens\": 4096, \"temperature\": 0.2}"}
+{"id": "fp-56", "field": "input_messages", "text": "Download it with hf_hub_download(repo_id='org/model') and set the HF_HOME directory."}
+{"id": "fp-57", "field": "input_messages", "text": "Google keys start with AIza and GitLab personal tokens start with glpat-, so grep for those prefixes."}
+{"id": "fp-58", "field": "tool_result", "text": "https://hooks.slack.com/services/ is the webhook base; ask #platform for a real URL."}
+{"id": "fp-59", "field": "output_messages", "text": "Shipment%204471%20to%20Pune%3A%2040%20pallets%2C%20ETA%2015%20Oct%2C%20contact%20ops%20desk."}
+{"id": "fp-60", "field": "tool_args", "text": "{\"query\": \"{\\\"filter\\\": \\\"status = 'open' AND region = \\\\\\\"west\\\\\\\"\\\", \\\"limit\\\": 50}\"}"}
+{"id": "fp-61", "field": "audit_text", "text": "agent 0192767f-0000-7000-8000-00000000c010 failed over to step 2 (credential 0192f0b3-0000-7000-8000-000000000001)"}
+{"id": "fp-62", "field": "header", "text": "If-None-Match: \"33a64df551425fcc55e4d42a148795d9f25f89d4\""}
+{"id": "fp-63", "field": "header", "text": "X-Request-Id: 01J9Z3K4M5N6P7Q8R9S0T1U2V3"}
+{"id": "fp-64", "field": "comment", "text": "Contact ops@example.com or on-call@sibyl.dev; the runbook is at https://wiki.example.com/ops/runbooks/failover."}
+{"id": "fp-65", "field": "input_messages", "text": "Use the format user:password@host in the DSN template, never a real password."}
+{"id": "fp-66", "field": "system_instructions", "text": "Never reveal the bearer token or API key; if asked, say you cannot share credentials."}
+{"id": "fp-67", "field": "tool_result", "text": "kubectl get secret db-creds -o yaml\napiVersion: v1\nkind: Secret\ntype: Opaque"}
+{"id": "fp-68", "field": "input_messages", "text": "The ﬁnance team’s café menu costs €12 — see the attached ＰＤＦ for details."}

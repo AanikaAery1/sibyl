@@ -1,0 +1,226 @@
+/* ════════════════════════════════════════════════════════════════
+   Sibyl console — design tokens ("macOS Liquid Glass", restrained).
+   Ground is cool grey-white; content sits on solid white panels with
+   hairlines; frosted glass only where layers overlap (toolbar, sidebar,
+   sheets, popovers, palette). Color is reserved for semantic state.
+   Dark mode is a designed palette, not an inversion. The theme script
+   sets data-theme on <html> before first paint.
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Neutrals ── */
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --hover: #f7f7fa;
+  --pressed: #efeff3;
+  --sunken: #f2f2f5;
+  --track: #e8e8ed;
+  --text: #1d1d1f;
+  --text-body: #424245;
+  --text-2: #5f5f64;
+  --text-3: #6e6e73;
+  --text-4: #a1a1a6;
+  --faint: #d2d2d7;
+  --hairline: rgba(0, 0, 0, 0.08);
+  --hairline-strong: rgba(0, 0, 0, 0.14);
+  --scrim: rgba(17, 17, 20, 0.28);
+
+  /* ── Accent (action, link, focus) ── */
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-text: #0058b0;
+  --accent-tint: rgba(0, 113, 227, 0.1);
+  --on-accent: #ffffff;
+  /* Filled controls: white text at ≥ 4.5:1 in both themes. */
+  --accent-fill: #0068d6;
+  --accent-fill-hover: #0072e8;
+  --focus-ring: rgba(0, 113, 227, 0.35);
+
+  /* ── Semantic state: health bands ── */
+  --healthy: #1e7b34;
+  --healthy-dot: #34c759;
+  --healthy-tint: rgba(52, 199, 89, 0.14);
+  --watch: #8a5a00;
+  --watch-dot: #f5b800;
+  --watch-tint: rgba(255, 204, 0, 0.2);
+  --degraded: #b04400;
+  --degraded-dot: #ff9500;
+  --degraded-tint: rgba(255, 149, 0, 0.15);
+  --failed: #c4131f;
+  --failed-dot: #ff3b30;
+  --failed-tint: rgba(255, 59, 48, 0.12);
+
+  /* ── Semantic state: routing ── */
+  --moved: #0060c7;
+  --moved-dot: #007aff;
+  --moved-tint: rgba(0, 122, 255, 0.11);
+  --human: #7a35a8;
+  --human-dot: #af52de;
+  --human-tint: rgba(175, 82, 222, 0.13);
+  --returning: #00717d;
+  --returning-dot: #30b0c7;
+  --returning-tint: rgba(48, 176, 199, 0.15);
+  --killed-bg: #1d1d1f;
+  --killed-fg: #ffffff;
+  --neutral-state: #545458;
+  --neutral-tint: rgba(120, 120, 128, 0.12);
+
+  /* ── Type ── */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "PingFang SC", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --fs-large: clamp(26px, 1.6vw + 16px, 34px);
+  --fs-title1: clamp(22px, 1vw + 15px, 26px);
+  --fs-title2: 20px;
+  --fs-title3: 17px;
+  --fs-headline: 15px;
+  --fs-body: 14px;
+  --fs-callout: 13px;
+  --fs-footnote: 12px;
+  --fs-caption: 11px;
+  --lh-tight: 1.12;
+  --lh-snug: 1.3;
+  --lh-base: 1.45;
+  --lh-read: 1.6;
+  --track-large: -0.026em;
+  --track-title: -0.018em;
+  --track-head: -0.008em;
+
+  /* ── Spacing rhythm (4-pt base; sections breathe more than rows) ── */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --gutter: clamp(16px, 2.4vw, 32px);
+  --section: clamp(28px, 4vw, 44px);
+  --row-y: 12px;
+  --row-x: clamp(14px, 2vw, 20px);
+
+  /* ── Radius tiers ── */
+  --r-pill: 999px;
+  --r-chip: 6px;
+  --r-thumb: 12px;
+  --r-sheet: 16px;
+  --r-card: 18px;
+  --r-panel: 22px;
+  --r-hero: 26px;
+
+  /* ── Elevation (always two-layer) ── */
+  --sh-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --sh-panel: 0 1px 3px rgba(0, 0, 0, 0.05), 0 14px 40px rgba(0, 0, 0, 0.05);
+  --sh-lift: 0 2px 6px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.1);
+  --sh-float: 0 1px 2px rgba(0, 0, 0, 0.06), 0 18px 48px rgba(0, 0, 0, 0.12);
+  --sh-overlay: 0 2px 8px rgba(0, 0, 0, 0.1), 0 30px 80px rgba(0, 0, 0, 0.24);
+  --sh-control: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+
+  /* ── Glass materials (thicker for bigger surfaces) ── */
+  --glass-bar: rgba(247, 247, 250, 0.7);
+  --glass-side: rgba(250, 250, 252, 0.62);
+  --glass-sheet: rgba(250, 250, 252, 0.9);
+  --glass-chip: rgba(255, 255, 255, 0.72);
+  --glass-filter-bar: saturate(180%) blur(20px);
+  --glass-filter-side: saturate(180%) blur(30px);
+  --glass-filter-sheet: saturate(190%) blur(40px);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.75), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
+  --glass-edge: rgba(0, 0, 0, 0.07);
+
+  /* ── Ambient light behind the glass (static, very soft) ── */
+  --ambient-a: rgba(0, 113, 227, 0.07);
+  --ambient-b: rgba(94, 92, 230, 0.06);
+  --ambient-alert: rgba(255, 59, 48, 0.07);
+
+  /* ── Motion ── */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-quick: cubic-bezier(0.4, 0, 1, 1);
+  --dur-press: 100ms;
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-enter: 400ms;
+  --dur-exit: 260ms;
+
+  /* ── Layout ── */
+  --sidebar-w: 248px;
+  --toolbar-h: 52px;
+  --max-grid: 1240px;
+  --max-read: 760px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0e0e10;
+  --surface: #1c1c1e;
+  --surface-raised: #242426;
+  --hover: #232326;
+  --pressed: #2a2a2d;
+  --sunken: #161618;
+  --track: #2c2c2e;
+  --text: #f5f5f7;
+  --text-body: #d1d1d6;
+  --text-2: #aeaeb2;
+  --text-3: #98989d;
+  --text-4: #636366;
+  --faint: #48484a;
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.15);
+  --scrim: rgba(0, 0, 0, 0.5);
+
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --accent-text: #4ea1ff;
+  --accent-tint: rgba(10, 132, 255, 0.18);
+  --focus-ring: rgba(10, 132, 255, 0.5);
+
+  --healthy: #4cd964;
+  --healthy-dot: #30d158;
+  --healthy-tint: rgba(48, 209, 88, 0.16);
+  --watch: #ffd60a;
+  --watch-dot: #ffd60a;
+  --watch-tint: rgba(255, 214, 10, 0.14);
+  --degraded: #ffaa33;
+  --degraded-dot: #ff9f0a;
+  --degraded-tint: rgba(255, 159, 10, 0.16);
+  --failed: #ff6961;
+  --failed-dot: #ff453a;
+  --failed-tint: rgba(255, 69, 58, 0.17);
+
+  --moved: #64a8ff;
+  --moved-dot: #0a84ff;
+  --moved-tint: rgba(10, 132, 255, 0.18);
+  --human: #d9a1ff;
+  --human-dot: #bf5af2;
+  --human-tint: rgba(191, 90, 242, 0.2);
+  --returning: #70d7ff;
+  --returning-dot: #64d2ff;
+  --returning-tint: rgba(100, 210, 255, 0.16);
+  --killed-bg: #f5f5f7;
+  --killed-fg: #1d1d1f;
+  --neutral-state: #c7c7cc;
+  --neutral-tint: rgba(142, 142, 147, 0.2);
+
+  --sh-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --sh-panel: 0 0 0 0.5px rgba(255, 255, 255, 0.06), 0 14px 40px rgba(0, 0, 0, 0.3);
+  --sh-lift: 0 0 0 0.5px rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --sh-float: 0 0 0 0.5px rgba(255, 255, 255, 0.08), 0 18px 48px rgba(0, 0, 0, 0.5);
+  --sh-overlay: 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 30px 80px rgba(0, 0, 0, 0.6);
+  --sh-control: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+
+  --glass-bar: rgba(22, 22, 24, 0.66);
+  --glass-side: rgba(30, 30, 33, 0.58);
+  --glass-sheet: rgba(34, 34, 37, 0.9);
+  --glass-chip: rgba(44, 44, 46, 0.7);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);
+  --glass-edge: rgba(255, 255, 255, 0.08);
+
+  --ambient-a: rgba(10, 132, 255, 0.12);
+  --ambient-b: rgba(94, 92, 230, 0.11);
+  --ambient-alert: rgba(255, 69, 58, 0.12);
+}

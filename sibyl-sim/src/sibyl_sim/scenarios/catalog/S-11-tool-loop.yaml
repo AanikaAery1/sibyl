@@ -1,0 +1,26 @@
+# S-11 Tool-call loop (ML §8.2; ROADMAP M2 2.2): the model keeps asking for the same tool with
+# the same arguments; the agent obeys up to 40 times inside one task.
+id: S-11
+title: Tool-call loop, tier 1 (SDK)
+gate_class: none
+duration_s: 240
+tenants:
+  meridian:
+    agents:
+      billing-agent: sdk_loop   # tier 1, openai-stub, SDK-only agent
+profiles:
+  sdk_loop: {rps: 0.05, via: sdk, tools: true, tool_calls_per_task: 40}
+chaos:
+  - {at: 20, double: openai-stub, agents: [billing-agent], set: {tool_loop: {rate: 1.0, tool_name: lookup_order}}}
+labels:
+  - {agent: billing-agent, kind: onset, t: 20, failure_mode: infinite_loop}
+expect:
+  - detect: {agent: billing-agent, rule: tool_loop, by_t: 240}
+  - no_alert: {agent: billing-agent, rule: [R1, R3]}
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}
+  - handoff: {agent: billing-agent, fidelity: checkpoint}
+personas:
+  - {at: 200, persona: operator, do: claim_task, agent: billing-agent}
+  - {at: 220, persona: operator, do: complete_task, agent: billing-agent}

@@ -1,0 +1,201 @@
+{
+  "schema": "sibyl-handoff/1",
+  "packet_id": "019276a3-1d5e-7f60-8b72-3c4d5e6f7081",
+  "tenant_id": "0192767f-0000-7000-8000-00000000a001",
+  "agent_id": "0192767f-0000-7000-8000-00000000c010",
+  "agent_name": "quote-assistant",
+  "task_id": "019276a0-9c1d-7e3f-9a52-1b2c3d4e5f60",
+  "created_at": "2026-10-09T09:16:02.000Z",
+  "fidelity": "checkpoint",
+  "goal": "Produce and send a price quote for order #A-88213 to the customer contact on file",
+  "original_input": {
+    "preview": "Customer: Meridian Logistics. Request: quote for 40 pallets, delivery Pune, by 15 Oct. Attachments: RFQ-7731.pdf",
+    "ref": {
+      "ref": "blob://0192767f-0000-7000-8000-00000000a001/2026-10-09/4bf92f3577b34da6a3ce929d0e0e4736/a0a0a0a0a0a0a0a0.bin",
+      "sha256": "0c3a2e1f9d8b7a6c5e4d3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c",
+      "bytes": 3120,
+      "content_type": "application/vnd.sibyl.genai-content+json",
+      "parts": [
+        "input_messages"
+      ]
+    },
+    "content_type": "application/vnd.sibyl.genai-content+json"
+  },
+  "completed_steps": [
+    {
+      "index": 0,
+      "step": "parse_rfq",
+      "started_at": "2026-10-09T09:14:10.000Z",
+      "ended_at": "2026-10-09T09:14:12.400Z",
+      "output": {
+        "preview": "{\"sku\":\"PAL-40\",\"qty\":40,\"city\":\"Pune\",\"by\":\"2026-10-15\"}"
+      },
+      "assumed": false
+    },
+    {
+      "index": 1,
+      "step": "lookup_order",
+      "started_at": "2026-10-09T09:14:30.000Z",
+      "ended_at": "2026-10-09T09:14:32.600Z",
+      "tool_name": "lookup_order",
+      "call_id": "019276a1-4a2b-7c1d-8e30-f1e2d3c4b5a6",
+      "output": {
+        "preview": "order A-88213: credit ok, pricing tier B"
+      },
+      "assumed": false
+    },
+    {
+      "index": 2,
+      "step": "price_quote",
+      "started_at": "2026-10-09T09:14:33.000Z",
+      "ended_at": "2026-10-09T09:14:34.900Z",
+      "output": {
+        "preview": "INR 4,18,000 incl. freight; validity 7 days"
+      },
+      "assumed": false
+    },
+    {
+      "index": 3,
+      "step": "draft_email",
+      "started_at": "2026-10-09T09:15:40.000Z",
+      "ended_at": "2026-10-09T09:15:58.200Z",
+      "span_id": "8b2c3d4e5f607182",
+      "output": {
+        "preview": "Subject: Quote A-88213 ...",
+        "ref": {
+          "ref": "blob://0192767f-0000-7000-8000-00000000a001/2026-10-09/4bf92f3577b34da6a3ce929d0e0e4736/8b2c3d4e5f607182.bin",
+          "sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+          "bytes": 2210,
+          "content_type": "application/vnd.sibyl.genai-content+json",
+          "parts": [
+            "output_messages"
+          ]
+        }
+      },
+      "assumed": true
+    }
+  ],
+  "pending_steps": [
+    {
+      "index": 4,
+      "step": "send_quote",
+      "description": "Send the drafted email via CRM send_email tool",
+      "inputs_needed": [
+        "approved draft"
+      ]
+    },
+    {
+      "index": 5,
+      "step": "log_crm",
+      "description": "Record quote in CRM opportunity 7731"
+    }
+  ],
+  "side_effects": [
+    {
+      "kind": "api_call",
+      "target": "crm.lookup_order",
+      "at": "2026-10-09T09:14:32.600Z",
+      "reversible": true,
+      "assumed": false,
+      "evidence_span_id": "00f067aa0ba902b7"
+    }
+  ],
+  "reason": {
+    "plain_language": "OpenAI returned rate-limit errors on 8 of the last 10 calls from this agent and the inline fallback model also failed on step 'send_quote'. The task was stopped before any email was sent.",
+    "failure_mode": "outage",
+    "trigger": {
+      "kind": "rule",
+      "rule_id": "ratelimit_proximity",
+      "alert_id": "0192767f-0000-7000-8000-00000000e501",
+      "health_snapshot_id": "019276a2-7f00-7000-8000-000000000042",
+      "factors": [
+        {
+          "rule": "ratelimit_proximity",
+          "weight": 0.15,
+          "value": 0.045,
+          "threshold": 0.1,
+          "direction": "below",
+          "penalty": 10,
+          "explanation": "Rate-limit headroom 4.5% (threshold 10%)"
+        },
+        {
+          "rule": "error_rate",
+          "weight": 0.3,
+          "value": 0.8,
+          "threshold": 0.05,
+          "direction": "above",
+          "penalty": 30,
+          "explanation": "Error rate 80% over the last 5 minutes (threshold 5%)"
+        }
+      ],
+      "span_ids": [
+        "9c3d4e5f60718293"
+      ],
+      "call_ids": [
+        "019276a2-5a2b-7c1d-8e30-f1e2d3c4b5a9"
+      ]
+    }
+  },
+  "next_action": "Review the drafted email in step 3, then send it to the customer and log the quote in CRM opportunity 7731.",
+  "deadline": {
+    "at": "2026-10-09T10:16:02.000Z",
+    "derived_from": "tier_rto",
+    "tier": 2,
+    "rto_s": 3600
+  },
+  "accountability": {
+    "owner": "sales-ops@tenant",
+    "on_call": "r.iyer",
+    "escalation": "head-of-sales",
+    "business_process": "Quote-to-cash",
+    "line": "Owned by sales-ops@tenant (Quote-to-cash); on call r.iyer; escalate to head-of-sales"
+  },
+  "redaction": {
+    "capture_mode": "full",
+    "profile": {
+      "id": "secrets_only",
+      "version": 1,
+      "rules_fired": [],
+      "secrets_scrubbed": 0
+    },
+    "fields_redacted": []
+  },
+  "provenance": {
+    "assembled_by": "control_plane",
+    "checkpoint_id": "019276a2-0c4d-7e5f-8a61-2b3c4d5e6f71",
+    "checkpoint_seq": 2,
+    "checkpoint_age_s": 87,
+    "trace_ids": [
+      "4bf92f3577b34da6a3ce929d0e0e4736"
+    ],
+    "policy_version": 42,
+    "transition_id": "0192767f-0000-7000-8000-00000000f777",
+    "normaliser_version": "normaliser/1.3.0",
+    "sdk_version": "0.1.0"
+  },
+  "sidecar": {
+    "route_history": [
+      {
+        "at": "2026-10-09T09:14:31.000Z",
+        "to": {
+          "provider": "openai",
+          "model": "gpt-5-mini"
+        },
+        "decision": "inline_fallback"
+      },
+      {
+        "at": "2026-10-09T09:15:59.000Z",
+        "to": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-5"
+        },
+        "decision": "failover"
+      }
+    ],
+    "cost_so_far_usd": 0.0412,
+    "attempts": 6,
+    "model_calls": 5,
+    "tool_calls": 1
+  },
+  "summary": "Quote for Meridian Logistics order A-88213 drafted but not sent; OpenAI rate-limited, fallback failed at send_quote. Operator to review draft and send."
+}

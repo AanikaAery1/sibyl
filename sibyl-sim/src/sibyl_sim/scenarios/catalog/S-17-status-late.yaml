@@ -1,0 +1,22 @@
+# S-17 Status page late (ML §8.2): traffic is 100 % 5xx while the status page still says
+# operational. Detection must come from traffic alone; R4's absence must not block it.
+id: S-17
+title: Status page late (true outage, status operational), tier 3
+gate_class: hard
+duration_s: 180
+tenants:
+  meridian:
+    agents:
+      kb-summarizer: busy   # tier 3, openai-stub
+chaos:
+  - {at: 30, double: openai-stub, agents: [kb-summarizer], set: {error_rate: 1.0, error_statuses: [500, 502, 503]}}
+  - {at: 30, status: openai, set: {mode: late, delay_s: 3600}}
+labels:
+  - {agent: kb-summarizer, kind: onset, t: 30, failure_mode: provider_outage}
+expect:
+  - detect: {agent: kb-summarizer, rule: [R3, R1], by_t: 150}
+  - no_alert: {agent: kb-summarizer, rule: R4}
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}
+  - action: {agent: kb-summarizer, to_state: failed_over, by_t: 180}

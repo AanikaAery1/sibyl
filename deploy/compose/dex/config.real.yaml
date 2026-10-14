@@ -1,0 +1,71 @@
+# dex for the REAL deployment (deploy/compose/real.sh, `make up`): the bundled local OIDC issuer
+# with exactly one user, the first Platform Admin. Use it to get started or for small installs;
+# for production point SIBYL_OIDC_ISSUER at your own IdP (Okta, Entra ID, Google, Keycloak...)
+# and dex is not started at all (docs/setup/SETUP.md, "OIDC provider").
+#
+# Rendered by ./render.sh (DEX_CONFIG_TEMPLATE=/etc/sibyl-dex/config.real.yaml):
+#   __SIBYL_PUBLIC_URL__      the browser-facing origin, e.g. https://localhost:8443
+#   __DEX_PERSONA_HASH__      bcrypt hash of the admin password (file secret dex_persona_hash)
+#   __SIBYL_ADMIN_EMAIL__     the admin's email (SIBYL_ADMIN_EMAIL)
+#   __SIBYL_ADMIN_SUBJECT__   the admin's dex user id (SIBYL_DEX_ADMIN_ID, a UUID real.sh
+#                             generates once). Sibyl binds the admin by verified email at the
+#                             first sign-in (an invitation), so the id is internal to dex.
+# Client secrets come from the environment via secretEnv. Nothing secret is committed.
+# Add colleagues as more staticPasswords entries, or (better) connect an upstream IdP with a
+# dex connector (LDAP, SAML, GitHub, Google...): https://dexidp.io/docs/connectors/
+
+issuer: __SIBYL_PUBLIC_URL__/dex
+
+storage:
+  type: memory
+
+web:
+  http: 0.0.0.0:5556
+
+telemetry:
+  http: 0.0.0.0:5558
+
+logger:
+  level: info
+  format: json
+
+oauth2:
+  responseTypes: ["code"]
+  skipApprovalScreen: true
+  alwaysShowLoginScreen: true
+  passwordConnector: local
+
+expiry:
+  idTokens: 1h
+  signingKeys: 6h
+  refreshTokens:
+    validIfNotUsedFor: 8h
+    absoluteLifetime: 24h
+
+enablePasswordDB: true
+
+staticClients:
+  # Console BFF: confidential client, PKCE code flow (API 2.1).
+  - id: sibyl-console
+    name: Sibyl console
+    secretEnv: DEX_CONSOLE_CLIENT_SECRET
+    redirectURIs:
+      - __SIBYL_PUBLIC_URL__/api/v1/auth/callback
+  # CLI and scripts: public client, PKCE, loopback redirect.
+  - id: sibyl-cli
+    name: Sibyl CLI
+    public: true
+    redirectURIs:
+      - http://127.0.0.1:8765/callback
+      - http://localhost:8765/callback
+  - id: sibyl-api
+    name: Sibyl API
+    secretEnv: DEX_API_CLIENT_SECRET
+    trustedPeers: ["sibyl-cli", "sibyl-console"]
+    redirectURIs: []
+
+staticPasswords:
+  - email: __SIBYL_ADMIN_EMAIL__
+    username: admin
+    userID: __SIBYL_ADMIN_SUBJECT__
+    hash: __DEX_PERSONA_HASH__

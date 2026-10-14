@@ -1,0 +1,10 @@
+sibyl-schemas
+Copyright 2026 The Sibyl authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The RFC 8785 test vectors in fixtures/jcs/ reproduce examples published in
+RFC 8785 "JSON Canonicalization Scheme (JCS)" (IETF, 2020).
+
+All credentials in fixtures/scrub/ and fixtures/snapshot/ are synthetic, generated
+from fixed seeds for testing; none is or was a live secret.

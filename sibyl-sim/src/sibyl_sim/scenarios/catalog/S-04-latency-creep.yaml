@@ -1,0 +1,32 @@
+# S-04 Latency creep (ML §8.2): p95 +12 %/window over 6 windows to 1.4x the R2 threshold.
+# support-triage calls the small model (gpt-5-mini): R2 threshold 5000 ms for class "small".
+id: S-04
+title: Latency creep, tier 2, p95 drifts to 1.4x threshold
+gate_class: ramp
+duration_s: 2100
+health_poll_s: 30
+tenants:
+  meridian:
+    agents:
+      support-triage: creep
+profiles:
+  creep: {rps: 0.4, model: gpt-5-mini}
+chaos:
+  - {at: 0, double: openai-stub, agents: [support-triage], set: {latency: {dist: fixed, ms: 3546}}}
+  - {at: 300, double: openai-stub, agents: [support-triage], set: {latency: {dist: fixed, ms: 3972}}}
+  - {at: 600, double: openai-stub, agents: [support-triage], set: {latency: {dist: fixed, ms: 4448}}}
+  - {at: 900, double: openai-stub, agents: [support-triage], set: {latency: {dist: fixed, ms: 4982}}}
+  - {at: 1200, double: openai-stub, agents: [support-triage], set: {latency: {dist: fixed, ms: 5580}}}
+  - {at: 1500, double: openai-stub, agents: [support-triage], set: {latency: {dist: fixed, ms: 6250}}}
+  - {at: 1800, double: openai-stub, agents: [support-triage], set: {latency: {dist: fixed, ms: 7000}}}
+labels:
+  - {agent: support-triage, kind: precursor, t: 600, failure_mode: latency_degradation}
+  - {agent: support-triage, kind: onset, t: 1200, failure_mode: latency_degradation}
+expect:
+  - detect: {agent: support-triage, rule: R2, by_t: 1800}
+  - no_alert: {agent: support-triage, rule: [R1, R3]}
+  - explainable: {}
+  - quiet: {tenant: northstar}
+  - isolated: {tenant: meridian}
+  - predict: {agent: support-triage, rule: L2, by_t: 1200}
+  - action: {agent: support-triage, to_state: degraded, by_t: 2100}
