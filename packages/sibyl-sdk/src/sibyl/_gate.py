@@ -20,6 +20,7 @@ from typing import Any, Final
 
 from sibyl import _state
 from sibyl._actions import Verdict
+from sibyl._errors import SibylActionBlocked
 from sibyl._run import current_run
 
 ENV_SENSITIVE: Final = "SIBYL_SENSITIVE_TOOLS"
@@ -71,16 +72,28 @@ def _check_args(tool: str, args: Any, call_id: Any) -> dict[str, Any]:
 
 def gate(tool: str, args: Any, *, call_id: Any = None) -> Verdict | None:
     """Decide a framework tool call before it runs; raises the Action Gate errors. None
-    before `init()` or when this tool is already executing inside its own gate."""
+    before `init()` for nonsensitive tools or inside a nested gate. Sensitive\n    tools fail closed when the SDK has not been initialized."""
     client = _state.get()
-    if client is None or _IN_GATE.get() == tool:
+    if client is None:
+        if is_sensitive(tool):
+            raise SibylActionBlocked(
+                tool, "sibyl:uninitialized", "Sibyl has not been initialized"
+            )
+        return None
+    if _IN_GATE.get() == tool:
         return None
     return client.actions.check(tool, tool_args(args), **_check_args(tool, args, call_id))
 
 
 async def agate(tool: str, args: Any, *, call_id: Any = None) -> Verdict | None:
     client = _state.get()
-    if client is None or _IN_GATE.get() == tool:
+    if client is None:
+        if is_sensitive(tool):
+            raise SibylActionBlocked(
+                tool, "sibyl:uninitialized", "Sibyl has not been initialized"
+            )
+        return None
+    if _IN_GATE.get() == tool:
         return None
     return await client.actions.acheck(tool, tool_args(args), **_check_args(tool, args, call_id))
 
