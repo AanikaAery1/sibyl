@@ -336,6 +336,25 @@ def verify_export(
     report.from_seq = events[0].get("seq") if isinstance(events[0].get("seq"), int) else None
     chosen = list(anchors) if anchors else [ln for ln in lines if ln.get("type") == "anchor"]
     try:
+        # A valid earlier anchor must not make an incomplete export appear complete.
+        # This checks consistency with the declared range, not completeness against
+        # the server: independent latest-anchor pinning is still required.
+        if header is not None:
+            for field, observed in (
+                ("from_seq", events[0].get("seq")),
+                ("to_seq", events[-1].get("seq")),
+            ):
+                declared = header.get(field)
+                if (
+                    not isinstance(declared, int)
+                    or isinstance(declared, bool)
+                    or declared != observed
+                ):
+                    raise _Break(
+                        observed if isinstance(observed, int) and not isinstance(observed, bool) else None,
+                        GAP,
+                        f"export header {field} does not match included events",
+                    )
         hashes = _check_rows(events, tenant)
         report.rows = len(hashes)
         report.to_seq = max(hashes)
