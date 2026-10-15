@@ -13,7 +13,7 @@ from typing import Any, overload
 
 from sibyl import _state
 from sibyl._actions import Mode, Verdict
-from sibyl._errors import SibylError
+from sibyl._errors import SibylActionBlocked, SibylError
 from sibyl._run import current_run, tree_attributes
 from sibyl._spans import Span, use_context
 from sibyl._types import SideEffectClass, ToolType
@@ -77,6 +77,10 @@ class _ToolSpec:
         `SibylActionHeld` / `SibylActionDenied` (the function then never runs)."""
         client = _state.get()
         if client is None:
+            if self.sensitive:
+                raise SibylActionBlocked(
+                    self.name, "sibyl:uninitialized", "Sibyl has not been initialized"
+                )
             return
         run = current_run()
         try:
@@ -95,6 +99,10 @@ class _ToolSpec:
     async def agate(self, args: tuple[Any, ...], kwargs: dict[str, Any], span: Span | None) -> None:
         client = _state.get()
         if client is None:
+            if self.sensitive:
+                raise SibylActionBlocked(
+                    self.name, "sibyl:uninitialized", "Sibyl has not been initialized"
+                )
             return
         run = current_run()
         try:
