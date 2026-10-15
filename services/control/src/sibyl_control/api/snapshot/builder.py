@@ -24,6 +24,8 @@ from uuid import UUID
 
 from sibyl_schemas.scrub import REGISTRY_VERSION
 
+from .monthly_spend import observed_month_to_date_spend
+
 GATEWAY_SCOPE = "gateway:proxy"
 SYSTEM_PROFILE = "secrets_only"
 _DEAD_CREDENTIAL = frozenset({"revoked", "shredded", "expired"})
@@ -107,6 +109,7 @@ async def build_tenant_block(conn: Any, scope: SnapshotScope, *, demo_mode: bool
     providers = await _providers(conn)
     agents_raw = await conn.fetch(_AGENTS_SQL, scope.agent_id)
     agent_ids = {row["id"] for row in agents_raw}
+    observed_spend = await observed_month_to_date_spend(conn, scope.tenant_id, agent_ids)
     plans = {
         r["agent_id"]: r
         for r in await conn.fetch(
@@ -135,6 +138,7 @@ async def build_tenant_block(conn: Any, scope: SnapshotScope, *, demo_mode: bool
             identities.get(row["id"]),
             chains,
             capture,
+            spent_usd_month=observed_spend.get(row["id"], Decimal(0)),
         )
     block: dict[str, Any] = {
         "routing_version": int(tenant["routing_version"]),
@@ -349,6 +353,8 @@ def _agent(
     identity: Any,
     chains: Mapping[UUID, _Chain],
     capture: Mapping[UUID | None, Any],
+    *,
+    spent_usd_month: Decimal = Decimal(0),
 ) -> dict[str, Any]:
     agent_id = row["id"]
     chain = None
@@ -378,7 +384,7 @@ def _agent(
             "max_inflight": plan["max_inflight"] if plan else None,
             "rps": float(plan["rps_limit"]) if plan and plan["rps_limit"] else None,
             "budget_usd_month": money(plan["budget_usd_month"]) if plan else None,
-            "spent_usd_month": "0",
+            "spent_usd_month": money(spent_usd_month),
         },
         "identity": _identity(identity),
     }
