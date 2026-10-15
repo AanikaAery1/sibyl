@@ -79,13 +79,17 @@ async def reserve_monthly(
         await conn.execute(
             "INSERT INTO sibyl.agent_budget_period (tenant_id, agent_id, period_start)"
             " VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-            tenant_id, agent_id, period,
+            tenant_id,
+            agent_id,
+            period,
         )
         # Every update (including settlement) locks period before reservation.
         row = await conn.fetchrow(
             "SELECT spent_usd, reserved_usd FROM sibyl.agent_budget_period"
             " WHERE tenant_id=$1 AND agent_id=$2 AND period_start=$3 FOR UPDATE",
-            tenant_id, agent_id, period,
+            tenant_id,
+            agent_id,
+            period,
         )
         if row is None:
             raise BudgetConfigurationError("agent budget row not visible")
@@ -94,7 +98,8 @@ async def reserve_monthly(
             "SELECT agent_id, period_start, reserved_usd, state"
             " FROM sibyl.agent_budget_reservation"
             " WHERE tenant_id=$1 AND request_id=$2",
-            tenant_id, request_id,
+            tenant_id,
+            request_id,
         )
         if existing is not None:
             if existing["agent_id"] != agent_id or Decimal(existing["reserved_usd"]) != amount:
@@ -108,7 +113,8 @@ async def reserve_monthly(
         cap = await conn.fetchval(
             "SELECT budget_usd_month FROM sibyl.continuity_plan"
             " WHERE tenant_id=$1 AND agent_id=$2",
-            tenant_id, agent_id,
+            tenant_id,
+            agent_id,
         )
         if cap is None:
             raise BudgetConfigurationError("hard monthly budget is not configured")
@@ -123,7 +129,11 @@ async def reserve_monthly(
             " WHERE tenant_id=$1 AND agent_id=$2 AND period_start=$3"
             " AND spent_usd + reserved_usd + $4 <= $5"
             " RETURNING reserved_usd",
-            tenant_id, agent_id, period, amount, limit,
+            tenant_id,
+            agent_id,
+            period,
+            amount,
+            limit,
         )
         if updated is None:
             return ReserveResult("exhausted", period, amount)
@@ -131,7 +141,11 @@ async def reserve_monthly(
             "INSERT INTO sibyl.agent_budget_reservation"
             " (tenant_id, request_id, agent_id, period_start, reserved_usd)"
             " VALUES ($1, $2, $3, $4, $5)",
-            tenant_id, request_id, agent_id, period, amount,
+            tenant_id,
+            request_id,
+            agent_id,
+            period,
+            amount,
         )
         return ReserveResult("granted", period, amount)
 
@@ -158,20 +172,24 @@ async def settle_monthly(
         location = await conn.fetchrow(
             "SELECT agent_id, period_start FROM sibyl.agent_budget_reservation"
             " WHERE tenant_id=$1 AND request_id=$2",
-            tenant_id, request_id,
+            tenant_id,
+            request_id,
         )
         if location is None:
             raise UnknownReservation(str(request_id))
         await conn.fetchrow(
             "SELECT spent_usd FROM sibyl.agent_budget_period"
             " WHERE tenant_id=$1 AND agent_id=$2 AND period_start=$3 FOR UPDATE",
-            tenant_id, location["agent_id"], location["period_start"],
+            tenant_id,
+            location["agent_id"],
+            location["period_start"],
         )
         held = await conn.fetchrow(
             "SELECT reserved_usd, actual_usd, state"
             " FROM sibyl.agent_budget_reservation"
             " WHERE tenant_id=$1 AND request_id=$2 FOR UPDATE",
-            tenant_id, request_id,
+            tenant_id,
+            request_id,
         )
         if held is None:
             raise UnknownReservation(str(request_id))
@@ -185,7 +203,11 @@ async def settle_monthly(
             " SET reserved_usd=reserved_usd-$4, spent_usd=spent_usd+$5,"
             " updated_at=now() WHERE tenant_id=$1 AND agent_id=$2 AND period_start=$3"
             " AND reserved_usd >= $4 RETURNING spent_usd",
-            tenant_id, location["agent_id"], location["period_start"], reserved, actual,
+            tenant_id,
+            location["agent_id"],
+            location["period_start"],
+            reserved,
+            actual,
         )
         if result is None:
             raise ReservationConflict("reserved balance cannot cover the settlement")
@@ -193,7 +215,9 @@ async def settle_monthly(
             "UPDATE sibyl.agent_budget_reservation"
             " SET state='settled', actual_usd=$3, settled_at=now()"
             " WHERE tenant_id=$1 AND request_id=$2 AND state='pending'",
-            tenant_id, request_id, actual,
+            tenant_id,
+            request_id,
+            actual,
         )
         return True
 
