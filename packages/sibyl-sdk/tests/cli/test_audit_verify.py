@@ -353,3 +353,57 @@ def test_valid_older_anchor_cannot_mask_truncated_export(
     report = verify_export(truncated, key_set(key))
     assert not report.ok
     assert report.kind == "gap"
+
+
+def test_independent_expected_terminal_sequence_detects_consistent_truncation(
+    key: Ed25519PrivateKey,
+) -> None:
+    rows = chain(6)
+    earlier = anchor(rows, key, seq_to=2)
+    truncated = export(rows[:3], [earlier])
+    # The truncated export has an internally consistent header and valid anchor.
+    assert verify_export(truncated, key_set(key)).ok
+    report = verify_export(truncated, key_set(key), expected_to_seq=5)
+    assert (report.ok, report.kind) == (False, "gap")
+
+
+def test_independent_pinned_head_hash_detects_rewritten_export(
+    key: Ed25519PrivateKey,
+) -> None:
+    rows = chain(5)
+    signed = anchor(rows, key)
+    assert verify_export(
+        export(rows, [signed]),
+        key_set(key),
+        expected_to_seq=4,
+        expected_head_hash=rows[-1]["hash"],
+    ).ok
+    report = verify_export(
+        export(rows, [signed]),
+        key_set(key),
+        expected_head_hash="ee" * 32,
+    )
+    assert (report.ok, report.kind) == (False, "anchor_mismatch")
+
+
+def test_cli_accepts_independent_terminal_pin(
+    tmp_path: Path,
+    key: Ed25519PrivateKey,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    rows = chain(5)
+    export_path, key_path = _write(tmp_path, rows, [anchor(rows, key)], key)
+    assert main([
+        "audit", "verify", str(export_path), "--public-key", str(key_path),
+        "--expected-to-seq", "4", "--expected-head-hash", rows[-1]["hash"],
+    ]) == EXIT_OK
+    capsys.readouterr()
+    assert main([
+        "audit", "verify", str(export_path), "--public-key", str(key_path),
+        "--expected-to-seq", "7",
+    ]) == EXIT_BREAK
+    capsys.readouterr()
+    assert main([
+        "audit", "verify", str(export_path), "--public-key", str(key_path),
+        "--expected-head-hash", "not-a-hash",
+    ]) == EXIT_INPUT
