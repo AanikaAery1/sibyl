@@ -86,7 +86,7 @@ async def test_projection_content(api: Api) -> None:
         "max_inflight": 10,
         "rps": 5.5,
         "budget_usd_month": "1500.0000",
-        "spent_usd_month": "0",
+        "spent_usd_month": "0.0000",
     }
     assert a["identity"]["enforcement"] == "block"
     assert a["identity"]["allowed_models"] == ["alt-1", "large-1"]
@@ -258,3 +258,26 @@ async def test_snapshot_route_is_rate_limited_per_key(api: Api) -> None:
         (await api.client.get(SNAP, headers=api.auth("gateway"))).status_code for _ in range(6)
     ]
     assert codes[0] == 200 and 429 in codes
+
+
+async def test_observed_spend_projection_uses_priced_gateway_events() -> None:
+    """Signed snapshots may show observed spend but cannot enforce a hard cap."""
+    from decimal import Decimal
+    from uuid import uuid4
+
+    from sibyl_control.api.snapshot.monthly_spend import observed_month_to_date_spend
+
+    tenant, agent = uuid4(), uuid4()
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            assert "SUM(GREATEST(cost_usd, 0))" in query
+            assert "source = 'gateway'" in query
+            assert "cost_usd IS NOT NULL" in query
+            assert "AT TIME ZONE 'UTC'" in query
+            assert args[0] == tenant and agent in args[1]
+            return [{"agent_id": agent, "month_spend": Decimal("17.12500999")}]
+
+    amount = await observed_month_to_date_spend(FakeConnection(), tenant, {agent})
+    assert amount == {agent: Decimal("17.12500999")}
+    assert await observed_month_to_date_spend(FakeConnection(), tenant, set()) == {}
