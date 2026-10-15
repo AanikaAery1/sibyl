@@ -322,3 +322,34 @@ def test_cli_exit_codes(
         main(["audit", "verify", str(tmp_path / "missing"), "--public-key", str(key_path)])
         == EXIT_INPUT
     )
+
+
+def test_header_must_match_first_and_last_event(key: Ed25519PrivateKey) -> None:
+    """A claimed export range must correspond to the included audit rows."""
+    rows = chain(6)
+    signed = anchor(rows, key)
+    for field, value in (
+        ("from_seq", 1),
+        ("to_seq", 4),
+        ("from_seq", True),
+        ("to_seq", "5"),
+        ("from_seq", None),
+        ("to_seq", None),
+    ):
+        document = export(rows, [signed])
+        document[0][field] = value
+        report = verify_export(document, key_set(key))
+        assert (report.ok, report.kind) == (False, "gap"), (field, value, report.as_dict())
+
+
+def test_valid_older_anchor_cannot_mask_truncated_export(
+    key: Ed25519PrivateKey,
+) -> None:
+    """An earlier valid signature does not cover the header's omitted later rows."""
+    rows = chain(6)
+    older_anchor = anchor(rows, key, seq_to=2)
+    document = export(rows, [older_anchor])
+    truncated = [document[0], *rows[:3], older_anchor]
+    report = verify_export(truncated, key_set(key))
+    assert not report.ok
+    assert report.kind == "gap"
