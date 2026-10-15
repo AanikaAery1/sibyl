@@ -328,15 +328,17 @@ def verify_export(
     expected_head_hash: str | None = None,
 ) -> Report:
     if expected_to_seq is not None and (
-        isinstance(expected_to_seq, bool) or expected_to_seq < 0
+        not isinstance(expected_to_seq, int)
+        or isinstance(expected_to_seq, bool)
+        or expected_to_seq < 0
     ):
         raise InputError("expected_to_seq must be a non-negative integer")
-    if expected_head_hash is not None:
-        if (
-            len(expected_head_hash) != 64
-            or any(c not in "0123456789abcdefABCDEF" for c in expected_head_hash)
-        ):
-            raise InputError("expected_head_hash must be a 64-digit hexadecimal SHA-256")
+    if expected_head_hash is not None and (
+        not isinstance(expected_head_hash, str)
+        or len(expected_head_hash) != 64
+        or any(c not in "0123456789abcdefABCDEF" for c in expected_head_hash)
+    ):
+        raise InputError("expected_head_hash must be a 64-digit hexadecimal SHA-256")
     header = next((ln for ln in lines if ln.get("type") == "header"), None)
     if header is not None and header.get("format") != EXPORT_FORMAT:
         raise InputError(f"unsupported export format {header.get('format')!r}")
@@ -363,7 +365,11 @@ def verify_export(
                     or declared != observed
                 ):
                     raise _Break(
-                        observed if isinstance(observed, int) and not isinstance(observed, bool) else None,
+                        (
+                            observed
+                            if isinstance(observed, int) and not isinstance(observed, bool)
+                            else None
+                        ),
                         GAP,
                         f"export header {field} does not match included events",
                     )
