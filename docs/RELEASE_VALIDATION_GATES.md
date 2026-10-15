@@ -99,3 +99,14 @@ predictive capability has been validated. A defensible experiment needs:
 validated, and NOT deployed by this workstream.** Only after CI, integration,
 review, independent testing and an approved runbook may a deployment owner
 authorize staged rollout, rollback and post-release observation.
+
+## Activating GitHub Actions in a fork
+
+After enabling Actions in a fork, previous pull-request events may not be
+replayed automatically. Trigger a fresh **synchronize** event by committing a
+meaningful change to a PR branch, or dispatch the `ci` workflow manually in
+the fork's **Actions** tab using **Run workflow** and select the target branch.
+
+Check both the `python` and `console` jobs, plus their downloadable reports.
+Do not treat an enabled workflow as a passed workflow: a run must actually
+complete successfully on the same commit that is proposed for merging.
