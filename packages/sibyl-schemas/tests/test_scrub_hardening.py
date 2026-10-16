@@ -321,3 +321,26 @@ def test_scrub_accepts_bytes_directly() -> None:
     result = SCRUBBER.scrub_bytes(b"key " + ANTHROPIC.encode() + b" \xff")
     assert ANTHROPIC.encode() not in result
     assert result.endswith(b" \xff")
+
+
+def test_url_prefilter_keeps_userinfo_and_query_password_matches() -> None:
+    """The URL fast path must never discard a potentially credentialed URL."""
+    dsns = next(det for det in scrub.DETECTORS if det.id == "dsn")
+    basic = next(det for det in scrub.DETECTORS if det.id == "basic_auth_url")
+    for value in (
+        "postgres://user:secret@db.example/app",
+        "postgres://db.example/app?password=secretvalue",
+        "postgres://db.example/app?PWD=secretvalue",
+        "postgres://db.example/app?foo=1&passwd=secretvalue",
+    ):
+        assert detector_spans(value, dsns), value
+    assert detector_spans("https://user:secret@host.example/path", basic)
+    assert not detector_spans("https://user:secret-not-host", basic)
+
+
+def test_url_prefilter_skips_long_noncredentialled_scheme_runs() -> None:
+    dsns = next(det for det in scrub.DETECTORS if det.id == "dsn")
+    basic = next(det for det in scrub.DETECTORS if det.id == "basic_auth_url")
+    text = "postgres://" * 50000
+    assert detector_spans(text, dsns) == []
+    assert detector_spans(text, basic) == []
