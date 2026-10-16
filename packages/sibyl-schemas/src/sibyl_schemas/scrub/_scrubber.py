@@ -132,6 +132,16 @@ def _entry_spans(text: str, entry: _Compiled) -> list[tuple[int, int]]:
     detector, patterns, requires = entry
     if requires is not None and not requires.search(text):
         return []
+    # Userinfo URL patterns MUST contain '@'. The DSN query-password
+    # alternative needs one of its three literal key names followed by '='.
+    # This fast rejection avoids running expensive URL regex scans over long
+    # adversarial strings such as repeated "postgres://" fragments. Keep the
+    # existing regex and validators for all possible positive cases.
+    if detector.id in ("dsn", "basic_auth_url") and "@" not in text:
+        if detector.id == "basic_auth_url" or not any(
+            key in text.lower() for key in ("password=", "passwd=", "pwd=")
+        ):
+            return []
     check = VALIDATORS[detector.validator] if detector.validator else None
     spans: list[tuple[int, int]] = []
     for pattern, group in patterns:
