@@ -393,17 +393,39 @@ def test_cli_accepts_independent_terminal_pin(
 ) -> None:
     rows = chain(5)
     export_path, key_path = _write(tmp_path, rows, [anchor(rows, key)], key)
-    assert main([
-        "audit", "verify", str(export_path), "--public-key", str(key_path),
-        "--expected-to-seq", "4", "--expected-head-hash", rows[-1]["hash"],
-    ]) == EXIT_OK
+    args = [
+        "audit",
+        "verify",
+        str(export_path),
+        "--public-key",
+        str(key_path),
+        "--expected-to-seq",
+        "4",
+        "--expected-head-hash",
+        rows[-1]["hash"],
+    ]
+    assert main(args) == EXIT_OK
     capsys.readouterr()
-    assert main([
-        "audit", "verify", str(export_path), "--public-key", str(key_path),
-        "--expected-to-seq", "7",
-    ]) == EXIT_BREAK
+
+    wrong_seq_args = [
+        "audit",
+        "verify",
+        str(export_path),
+        "--public-key",
+        str(key_path),
+        "--expected-to-seq",
+        "7",
+    ]
+    assert main(wrong_seq_args) == EXIT_BREAK
     capsys.readouterr()
-    assert main([
-        "audit", "verify", str(export_path), "--public-key", str(key_path),
-        "--expected-head-hash", "not-a-hash",
-    ]) == EXIT_INPUT
+
+    bad_hash_args = [
+        "audit",
+        "verify",
+        str(export_path),
+        "--public-key",
+        str(key_path),
+        "--expected-head-hash",
+        "not-a-hash",
+    ]
+    assert main(bad_hash_args) == EXIT_INPUT
