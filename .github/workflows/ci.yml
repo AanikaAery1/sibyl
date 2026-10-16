@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Postgres 17 client tools, htpasswd
+      - name: Postgres 17 client tools, htpasswd and age encryption
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
@@ -51,8 +51,9 @@ jobs:
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends postgresql-client-17 apache2-utils
+          sudo apt-get install -y -qq --no-install-recommends postgresql-client-17 apache2-utils age
           "$PGBIN/pg_isready" -d "$SIBYL_PG_ADMIN_DSN"
+          age --version
 
       - uses: astral-sh/setup-uv@v6
         with:
